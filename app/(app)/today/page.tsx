@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { getTodayString, getDateLabel, getAllHours } from "@/lib/utils"
@@ -8,7 +8,7 @@ import type { Category, Day, HourLog, HourCellData } from "@/lib/types"
 import { HourGrid } from "@/components/hour-grid"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
-export default function TodayPage() {
+function TodayContent() {
   const searchParams = useSearchParams()
   const dateParam = searchParams.get('date')
   const [currentDate, setCurrentDate] = useState<string>(dateParam || getTodayString())
@@ -283,6 +283,18 @@ export default function TodayPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function TodayPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    }>
+      <TodayContent />
+    </Suspense>
   )
 }
 
