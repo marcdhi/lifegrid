@@ -8,9 +8,8 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Lifegrid - Todo App",
-  description: "A simple and elegant todo list app to organize your tasks and stay productive",
-  generator: "v0.app",
+  title: "Lifegrid",
+  description: "A life logging application for tracking time, spending, and reflections",
   icons: {
     icon: [
       {
