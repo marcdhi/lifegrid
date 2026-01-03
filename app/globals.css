@@ -3,66 +3,55 @@
 
 /* =============================================
    LIFEGRID DESIGN SYSTEM
-   Clean, readable, modern dark theme
+   Cursor-like: Calm, precise, intentional
    ============================================= */
 
 :root {
-  /* Background - deep but not pure black */
-  --background: #09090B;
-  --foreground: #FAFAFA;
+  /* Background - near-black, never pure black */
+  --background: #0D0D0D;
+  --foreground: #E8E8E8;
   
-  /* Text hierarchy - readable contrast */
-  --primary: #FAFAFA;
-  --secondary: #A1A1AA;
-  --muted: #71717A;
+  /* Text hierarchy - soft, muted, high-quality */
+  --primary: #E8E8E8;
+  --secondary: #9B9B9B;
+  --muted: #6B6B6B;
   
-  /* Surfaces */
-  --card: #18181B;
-  --card-foreground: #FAFAFA;
-  --popover: #18181B;
-  --popover-foreground: #FAFAFA;
+  /* Surfaces - subtle luminance steps */
+  --card: #151515;
+  --card-foreground: #E8E8E8;
+  --popover: #151515;
+  --popover-foreground: #E8E8E8;
   
   /* Interactive */
-  --primary-foreground: #09090B;
-  --secondary-bg: #27272A;
-  --secondary-foreground: #FAFAFA;
+  --primary-foreground: #0D0D0D;
+  --secondary-bg: #1A1A1A;
+  --secondary-foreground: #E8E8E8;
   
-  /* Accent */
-  --accent: #27272A;
-  --accent-foreground: #FAFAFA;
+  /* Accent - muted, desaturated */
+  --accent: #1A1A1A;
+  --accent-foreground: #E8E8E8;
   
-  /* Destructive */
-  --destructive: #DC2626;
-  --destructive-foreground: #FAFAFA;
+  /* Destructive - muted red */
+  --destructive: #C24A4A;
+  --destructive-foreground: #E8E8E8;
   
-  /* Borders - visible but subtle */
-  --border: #27272A;
-  --input: #27272A;
-  --ring: #3F3F46;
+  /* Borders - minimal contrast */
+  --border: rgba(255, 255, 255, 0.06);
+  --input: #1A1A1A;
+  --ring: rgba(255, 255, 255, 0.12);
   
   /* Sidebar */
-  --sidebar: #09090B;
-  --sidebar-foreground: #FAFAFA;
-  --sidebar-border: #27272A;
-  --sidebar-accent: #27272A;
-  --sidebar-accent-foreground: #FAFAFA;
+  --sidebar: #0D0D0D;
+  --sidebar-foreground: #E8E8E8;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-accent: #1A1A1A;
+  --sidebar-accent-foreground: #E8E8E8;
   
-  /* Radius - rounded but not too much */
-  --radius: 0.5rem;
-  
-  /* Category colors - vibrant but refined */
-  --cat-sleep: #3730A3;
-  --cat-work: #991B1B;
-  --cat-hobbies: #B45309;
-  --cat-freelance: #7C3AED;
-  --cat-exercise: #047857;
-  --cat-friends: #0369A1;
-  --cat-leisure: #475569;
-  --cat-dating: #BE185D;
-  --cat-family: #92400E;
-  --cat-productive: #4D7C0F;
-  --cat-travel: #1E40AF;
-  --cat-misc: #525252;
+  /* Radius - large, soft corners */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
 }
 
 @theme inline {
@@ -91,9 +80,10 @@
   --color-ring: var(--ring);
   
   /* Radius scale */
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
   
   /* Sidebar tokens */
   --color-sidebar: var(--sidebar);
@@ -115,45 +105,38 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: 'rlig' 1, 'calt' 1;
+    line-height: 1.6;
   }
   
-  /* Focus states */
+  /* Focus states - no outlines, subtle rings */
   button:focus-visible,
   a:focus-visible,
   input:focus-visible,
   select:focus-visible,
   textarea:focus-visible {
-    @apply outline-none ring-[3px] ring-ring ring-offset-2 ring-offset-background rounded-lg;
+    @apply outline-none;
   }
   
   /* Selection */
   ::selection {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.15);
   }
 }
 
 /* Hour grid cell styles */
 .hour-cell {
-  @apply relative border border-border rounded-lg transition-all duration-150;
+  @apply relative transition-all duration-150;
   aspect-ratio: 1;
 }
 
 .hour-cell:hover {
-  @apply border-zinc-500 scale-[1.02];
+  @apply scale-[1.02];
 }
 
-.hour-cell-empty {
-  @apply bg-zinc-900/50;
-}
-
-.hour-cell-filled {
-  @apply cursor-pointer;
-}
-
-/* Custom scrollbar */
+/* Custom scrollbar - minimal */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -161,12 +144,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--muted);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 /* Utility classes */

@@ -4,6 +4,9 @@ import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import type { Day } from "@/lib/types"
+import { PageHeader } from "@/components/ui/page-header"
+import { Card } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/empty-state"
 
 export default function ReflectionPage() {
   const [days, setDays] = useState<Day[]>([])
@@ -57,9 +60,9 @@ export default function ReflectionPage() {
     const date = new Date(dateStr + 'T00:00:00')
     return {
       day: date.getDate(),
-      month: date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(),
-      weekday: date.toLocaleDateString('en-US', { weekday: 'long' }),
+      month: date.toLocaleDateString('en-US', { month: 'long' }),
       year: date.getFullYear(),
+      weekday: date.toLocaleDateString('en-US', { weekday: 'long' }),
     }
   }
 
@@ -73,63 +76,78 @@ export default function ReflectionPage() {
 
   return (
     <div className="min-h-screen p-6 md:p-10">
-      <div className="max-w-2xl mx-auto space-y-8">
+      <div className="max-w-3xl mx-auto space-y-8">
         {/* Header */}
-        <header className="pb-6 border-b border-white/[0.06]">
-          <h1 className="text-2xl font-light tracking-tight text-primary">Reflections</h1>
-          <p className="text-xs text-muted mt-2">
-            {days.length} {days.length === 1 ? 'entry' : 'entries'}
-          </p>
-        </header>
+        <PageHeader
+          title="Reflections"
+          subtitle={`${days.length} ${days.length === 1 ? 'entry' : 'entries'}`}
+        />
 
         {days.length === 0 ? (
-          <p className="text-center py-12 text-muted text-sm">
-            No reflections yet. Add highlights or notes to your days.
-          </p>
+          <EmptyState
+            title="No reflections yet"
+            description="Add highlights or notes to your days to see them here"
+          />
         ) : (
-          <div className="space-y-0">
-            {days.map((day, index) => {
-              const { day: dayNum, month, weekday } = formatDate(day.date)
-              const isLast = index === days.length - 1
+          <div className="space-y-4">
+            {days.map((day) => {
+              const { day: dayNum, month, year, weekday } = formatDate(day.date)
               
               return (
-                <div 
-                  key={day.id} 
-                  className={`py-6 ${!isLast ? 'border-b border-white/[0.03]' : ''} cursor-pointer group`}
+                <Card
+                  key={day.id}
+                  variant="interactive"
+                  className="hover:border-white/[0.12] transition-all"
                   onClick={() => router.push(`/today?date=${day.date}`)}
                 >
-                  {/* Date */}
-                  <div className="flex items-baseline gap-3 mb-3">
-                    <span className="text-2xl font-light text-primary tabular-nums">
+                  {/* Date header */}
+                  <div className="flex items-end gap-4 mb-4">
+                    <span className="text-4xl font-light text-primary tabular-nums leading-none">
                       {dayNum}
                     </span>
-                    <span className="text-[10px] uppercase tracking-wider text-muted">
-                      {month}
-                    </span>
-                    <span className="text-xs text-muted group-hover:text-secondary transition-colors">
-                      {weekday}
-                    </span>
+                    <div className="flex flex-col justify-end pb-0.5">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-sm font-light text-primary">{month}</span>
+                        <span className="text-xs text-muted tabular-nums">{year}</span>
+                      </div>
+                      <span className="text-xs text-secondary">{weekday}</span>
+                    </div>
                   </div>
 
                   {/* Content */}
-                  <div className="space-y-3 pl-0">
+                  <div className="space-y-4">
                     {day.highlights && day.highlights.trim() && (
                       <div>
-                        <span className="text-[10px] uppercase tracking-wider text-muted">Highlights</span>
-                        <p className="text-sm text-secondary mt-1">{day.highlights}</p>
+                        <span className="text-xs tracking-wide text-muted font-medium block mb-1.5">
+                          Highlights
+                        </span>
+                        <p className="text-sm text-secondary leading-relaxed">{day.highlights}</p>
                       </div>
                     )}
 
                     {day.notes && day.notes.trim() && (
                       <div>
-                        <span className="text-[10px] uppercase tracking-wider text-muted">Notes</span>
-                        <p className="text-sm text-secondary mt-1 whitespace-pre-wrap">{day.notes}</p>
+                        <span className="text-xs tracking-wide text-muted font-medium block mb-1.5">
+                          Notes
+                        </span>
+                        <p className="text-sm text-secondary leading-relaxed whitespace-pre-wrap">
+                          {day.notes}
+                        </p>
                       </div>
                     )}
                   </div>
-                </div>
+                </Card>
               )
             })}
+          </div>
+        )}
+
+        {/* Philosophy */}
+        {days.length > 0 && (
+          <div className="pt-6 border-t border-white/[0.06]">
+            <p className="text-xs text-muted italic text-center">
+              Your thoughts, preserved. No formatting, no pressure, just you.
+            </p>
           </div>
         )}
       </div>

@@ -3,8 +3,12 @@
 import { useEffect, useState, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { Day, HourLog, Category, FoodEntry, WorkoutCompletion, WorkoutExercise } from "@/lib/types"
+import { formatDateString } from "@/lib/utils"
+import { PageHeader } from "@/components/ui/page-header"
+import { SectionHeader } from "@/components/ui/section-header"
+import { Card } from "@/components/ui/card"
 
-// Dusty, desaturated category colors (Apple-like)
+// Dusty, desaturated category colors (keep existing)
 const categoryColorMap: Record<string, string> = {
   'Sleep': '#1E1F2E',
   'Work': '#5C2A2A',
@@ -22,6 +26,21 @@ const categoryColorMap: Record<string, string> = {
 
 function getCategoryColor(category: Category): string {
   return categoryColorMap[category.name] || category.color
+}
+
+interface StatCardProps {
+  label: string
+  value: string | number
+  className?: string
+}
+
+function StatCard({ label, value, className }: StatCardProps) {
+  return (
+    <div className={className}>
+      <span className="text-xs tracking-wide text-muted font-medium block mb-2">{label}</span>
+      <p className="text-3xl font-light text-primary tabular-nums">{value}</p>
+    </div>
+  )
 }
 
 export default function AnalyticsPage() {
@@ -88,8 +107,8 @@ export default function AnalyticsPage() {
           break
       }
 
-      const startDateString = startDate.toISOString().split('T')[0]
-      const endDateString = now.toISOString().split('T')[0]
+      const startDateString = formatDateString(startDate)
+      const endDateString = formatDateString(now)
 
       // Fetch days
       const { data: daysData, error: daysError } = await supabase
@@ -157,15 +176,21 @@ export default function AnalyticsPage() {
     fetchData()
   }, [supabase, userId, timeRange])
 
-  // Calculate category breakdowns
+  // Calculate category breakdowns - using duration_minutes
   const categoryStats = useMemo(() => {
+    const totalMinutes = hourLogs.reduce((sum, log) => sum + (log.duration_minutes || 60), 0)
+    
     const stats = categories.map(category => {
-      const hoursLogged = hourLogs.filter(log => log.category_id === category.id).length
-      const percentage = hourLogs.length > 0 ? (hoursLogged / hourLogs.length) * 100 : 0
+      const minutesLogged = hourLogs
+        .filter(log => log.category_id === category.id)
+        .reduce((sum, log) => sum + (log.duration_minutes || 60), 0)
+      
+      const hours = minutesLogged / 60
+      const percentage = totalMinutes > 0 ? (minutesLogged / totalMinutes) * 100 : 0
 
       return {
         category,
-        hours: hoursLogged,
+        hours,
         percentage,
       }
     })
@@ -173,7 +198,7 @@ export default function AnalyticsPage() {
     return stats.filter(s => s.hours > 0).sort((a, b) => b.hours - a.hours)
   }, [categories, hourLogs])
 
-  const totalHoursLogged = hourLogs.length
+  const totalHoursLogged = hourLogs.reduce((sum, log) => sum + (log.duration_minutes || 60), 0) / 60
   const daysWithData = days.filter(d => {
     const dayLogs = hourLogs.filter(log => log.day_id === d.id)
     return dayLogs.length > 0
@@ -207,23 +232,16 @@ export default function AnalyticsPage() {
   }, [foodEntries])
 
   const workoutStats = useMemo(() => {
-    // Group completions by date
     const dayMap = new Map<string, string[]>()
     workoutCompletions.forEach(c => {
       const existing = dayMap.get(c.date) || []
       dayMap.set(c.date, [...existing, c.exercise_id])
     })
 
-    // Get unique dates with at least one completion
     const daysWithWorkouts = dayMap.size
-    
-    // Count total exercises completed
     const totalExercises = workoutCompletions.length
-
-    // Calculate estimated time (rough: 2 min per exercise)
     const estimatedMinutes = totalExercises * 2
 
-    // Get exercise names
     const exerciseFrequency = new Map<string, number>()
     workoutCompletions.forEach(c => {
       exerciseFrequency.set(c.exercise_id, (exerciseFrequency.get(c.exercise_id) || 0) + 1)
@@ -256,66 +274,69 @@ export default function AnalyticsPage() {
 
   return (
     <div className="min-h-screen p-6 md:p-10">
-      <div className="max-w-3xl mx-auto space-y-8">
-        {/* Header with section toggle */}
-        <header className="pb-6 border-b border-white/[0.06]">
-          <div className="flex gap-6 mb-6">
-            <button
-              onClick={() => setActiveSection('time')}
-              className={`text-[11px] uppercase tracking-wider transition-colors ${
-                activeSection === 'time'
-                  ? 'text-primary'
-                  : 'text-muted hover:text-secondary'
-              }`}
-            >
-              Time
-            </button>
-            <button
-              onClick={() => setActiveSection('fitness')}
-              className={`text-[11px] uppercase tracking-wider transition-colors ${
-                activeSection === 'fitness'
-                  ? 'text-primary'
-                  : 'text-muted hover:text-secondary'
-              }`}
-            >
-              Fitness
-            </button>
-          </div>
-          
-          {activeSection === 'time' ? (
-            <div>
-              <span className="text-4xl font-light tracking-tighter text-primary tabular-nums">
-                {totalHoursLogged}
-              </span>
-              <span className="text-sm text-muted ml-2">hours logged</span>
-            </div>
-          ) : (
-            <div className="flex gap-8">
-              <div>
-                <span className="text-4xl font-light tracking-tighter text-primary tabular-nums">
-                  {foodDayStats.totalEntries}
+      <div className="max-w-4xl mx-auto space-y-8">
+        {/* Header */}
+        <PageHeader
+          title={
+            activeSection === 'time' ? (
+              <div className="flex items-baseline gap-3">
+                <span className="text-5xl font-light tracking-tight text-primary tabular-nums">
+                  {Math.round(totalHoursLogged)}
                 </span>
-                <span className="text-sm text-muted ml-2">meals logged</span>
+                <span className="text-lg text-muted">hours logged</span>
               </div>
-              <div>
-                <span className="text-4xl font-light tracking-tighter text-primary tabular-nums">
-                  {workoutStats.daysWithWorkouts}
-                </span>
-                <span className="text-sm text-muted ml-2">workout days</span>
+            ) : (
+              <div className="flex gap-8">
+                <div className="flex items-baseline gap-3">
+                  <span className="text-5xl font-light tracking-tight text-primary tabular-nums">
+                    {foodDayStats.totalEntries}
+                  </span>
+                  <span className="text-lg text-muted">meals</span>
+                </div>
+                <div className="flex items-baseline gap-3">
+                  <span className="text-5xl font-light tracking-tight text-primary tabular-nums">
+                    {workoutStats.daysWithWorkouts}
+                  </span>
+                  <span className="text-lg text-muted">workout days</span>
+                </div>
               </div>
+            )
+          }
+          actions={
+            <div className="flex gap-3">
+              <button
+                onClick={() => setActiveSection('time')}
+                className={`px-3 py-1.5 text-xs tracking-wide transition-colors rounded-lg ${
+                  activeSection === 'time'
+                    ? 'text-primary bg-white/[0.06]'
+                    : 'text-muted hover:text-secondary'
+                }`}
+              >
+                Time
+              </button>
+              <button
+                onClick={() => setActiveSection('fitness')}
+                className={`px-3 py-1.5 text-xs tracking-wide transition-colors rounded-lg ${
+                  activeSection === 'fitness'
+                    ? 'text-primary bg-white/[0.06]'
+                    : 'text-muted hover:text-secondary'
+                }`}
+              >
+                Fitness
+              </button>
             </div>
-          )}
-        </header>
+          }
+        />
           
-        {/* Time range selector - minimal */}
+        {/* Time range selector */}
         <nav className="flex gap-4">
           {(['week', 'month', 'year'] as const).map((range) => (
             <button
               key={range}
               onClick={() => setTimeRange(range)}
-              className={`text-[11px] uppercase tracking-wider transition-colors ${
+              className={`text-xs tracking-wide transition-colors rounded-lg px-3 py-1.5 ${
                 timeRange === range
-                  ? 'text-primary'
+                  ? 'text-primary bg-white/[0.04]'
                   : 'text-muted hover:text-secondary'
               }`}
             >
@@ -327,48 +348,49 @@ export default function AnalyticsPage() {
         {activeSection === 'time' ? (
           <>
             {/* Summary stats */}
-            <div className="grid grid-cols-2 gap-8">
-              <div>
-                <span className="text-[10px] uppercase tracking-wider text-muted">Days tracked</span>
-                <p className="text-2xl font-light text-primary tabular-nums mt-1">{daysWithData}</p>
-              </div>
-              <div>
-                <span className="text-[10px] uppercase tracking-wider text-muted">Avg hours/day</span>
-                <p className="text-2xl font-light text-primary tabular-nums mt-1">
-                  {daysWithData > 0 ? (totalHoursLogged / daysWithData).toFixed(1) : '0'}
-                </p>
-              </div>
+            <div className="grid grid-cols-2 gap-6">
+              <StatCard
+                label="Days tracked"
+                value={daysWithData}
+              />
+              <StatCard
+                label="Avg hours per day"
+                value={daysWithData > 0 ? (totalHoursLogged / daysWithData).toFixed(1) : '0'}
+              />
             </div>
 
-            {/* Category breakdown - bar visualization */}
+            {/* Category breakdown */}
             {categoryStats.length > 0 && (
               <div className="space-y-4 pt-6 border-t border-white/[0.06]">
-                <h2 className="text-[10px] uppercase tracking-wider text-muted">Time Distribution</h2>
+                <SectionHeader>Time distribution</SectionHeader>
                 <div className="space-y-3">
                   {categoryStats.map(({ category, hours, percentage }) => (
-                    <div key={category.id} className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-2 h-2 rounded-sm"
-                            style={{ backgroundColor: getCategoryColor(category) }}
-                          />
-                          <span className="text-xs text-secondary">{category.name}</span>
+                    <Card key={category.id}>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-2.5 h-2.5 rounded-md"
+                              style={{ backgroundColor: getCategoryColor(category) }}
+                            />
+                            <span className="text-sm text-secondary">{category.name}</span>
+                          </div>
+                          <span className="text-xs text-muted tabular-nums">
+                            {hours.toFixed(1)}h · {percentage.toFixed(0)}%
+                          </span>
                         </div>
-                        <span className="text-xs text-muted tabular-nums">
-                          {hours}h · {percentage.toFixed(0)}%
-                        </span>
+                        <div className="h-2 bg-white/[0.03] rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${percentage}%`,
+                              backgroundColor: getCategoryColor(category),
+                              opacity: 0.6,
+                            }}
+                          />
+                        </div>
                       </div>
-                      <div className="h-1.5 bg-white/[0.03] rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{
-                            width: `${percentage}%`,
-                            backgroundColor: getCategoryColor(category),
-                          }}
-                        />
-                      </div>
-                    </div>
+                    </Card>
                   ))}
                 </div>
               </div>
@@ -377,40 +399,40 @@ export default function AnalyticsPage() {
         ) : (
           <>
             {/* Food Stats */}
-            <div className="grid grid-cols-2 gap-8">
-              <div>
-                <span className="text-[10px] uppercase tracking-wider text-muted">Days with food logged</span>
-                <p className="text-2xl font-light text-primary tabular-nums mt-1">{foodDayStats.daysWithFood}</p>
-              </div>
-              <div>
-                <span className="text-[10px] uppercase tracking-wider text-muted">Avg entries/day</span>
-                <p className="text-2xl font-light text-primary tabular-nums mt-1">
-                  {foodDayStats.avgPerDay.toFixed(1)}
-                </p>
-              </div>
+            <div className="grid grid-cols-2 gap-6">
+              <StatCard
+                label="Days with food logged"
+                value={foodDayStats.daysWithFood}
+              />
+              <StatCard
+                label="Avg entries per day"
+                value={foodDayStats.avgPerDay.toFixed(1)}
+              />
             </div>
 
             {/* Most eaten foods */}
             {foodTagStats.length > 0 && (
               <div className="space-y-4 pt-6 border-t border-white/[0.06]">
-                <h2 className="text-[10px] uppercase tracking-wider text-muted">Most Logged Foods</h2>
+                <SectionHeader>Most logged foods</SectionHeader>
                 <div className="space-y-2">
                   {foodTagStats.map(([tag, count]) => {
                     const maxCount = foodTagStats[0][1]
                     const percentage = (count / maxCount) * 100
                     return (
-                      <div key={tag} className="space-y-1">
-                        <div className="flex justify-between items-baseline">
-                          <span className="text-xs text-secondary">{tag}</span>
-                          <span className="text-xs text-muted tabular-nums">{count}×</span>
+                      <Card key={tag}>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-baseline">
+                            <span className="text-sm text-secondary">{tag}</span>
+                            <span className="text-xs text-muted tabular-nums">{count}×</span>
+                          </div>
+                          <div className="h-1.5 bg-white/[0.03] rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-white/15 rounded-full transition-all"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
                         </div>
-                        <div className="h-1 bg-white/[0.03] rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-white/10 rounded-full transition-all"
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
-                      </div>
+                      </Card>
                     )
                   })}
                 </div>
@@ -419,46 +441,47 @@ export default function AnalyticsPage() {
 
             {/* Workout Stats */}
             <div className="space-y-4 pt-6 border-t border-white/[0.06]">
-              <h2 className="text-[10px] uppercase tracking-wider text-muted">Workout Activity</h2>
+              <SectionHeader>Workout activity</SectionHeader>
               
-              <div className="grid grid-cols-2 gap-8">
-                <div>
-                  <span className="text-[10px] uppercase tracking-wider text-muted">Exercises completed</span>
-                  <p className="text-2xl font-light text-primary tabular-nums mt-1">{workoutStats.totalExercises}</p>
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase tracking-wider text-muted">Est. time active</span>
-                  <p className="text-2xl font-light text-primary tabular-nums mt-1">
-                    {workoutStats.estimatedMinutes < 60 
+              <div className="grid grid-cols-2 gap-6">
+                <StatCard
+                  label="Exercises completed"
+                  value={workoutStats.totalExercises}
+                />
+                <StatCard
+                  label="Est. time active"
+                  value={
+                    workoutStats.estimatedMinutes < 60 
                       ? `${workoutStats.estimatedMinutes}m`
                       : `${Math.floor(workoutStats.estimatedMinutes / 60)}h ${workoutStats.estimatedMinutes % 60}m`
-                    }
-                  </p>
-                </div>
+                  }
+                />
               </div>
 
               {/* Top exercises */}
               {workoutStats.topExercises.length > 0 && (
                 <div className="pt-4">
-                  <h3 className="text-[10px] uppercase tracking-wider text-muted mb-3">Most Completed Exercises</h3>
+                  <h3 className="text-xs tracking-wide text-muted font-medium mb-3">Most completed exercises</h3>
                   <div className="space-y-2">
                     {workoutStats.topExercises.map(({ exercise, count }) => {
                       if (!exercise) return null
                       const maxCount = workoutStats.topExercises[0].count
                       const percentage = (count / maxCount) * 100
                       return (
-                        <div key={exercise.id} className="space-y-1">
-                          <div className="flex justify-between items-baseline">
-                            <span className="text-xs text-secondary">{exercise.name}</span>
-                            <span className="text-xs text-muted tabular-nums">{count}×</span>
+                        <Card key={exercise.id}>
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-baseline">
+                              <span className="text-sm text-secondary">{exercise.name}</span>
+                              <span className="text-xs text-muted tabular-nums">{count}×</span>
+                            </div>
+                            <div className="h-1.5 bg-white/[0.03] rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-white/15 rounded-full transition-all"
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
                           </div>
-                          <div className="h-1 bg-white/[0.03] rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-white/10 rounded-full transition-all"
-                              style={{ width: `${percentage}%` }}
-                            />
-                          </div>
-                        </div>
+                        </Card>
                       )
                     })}
                   </div>
@@ -468,8 +491,8 @@ export default function AnalyticsPage() {
 
             {/* Empty state for fitness */}
             {foodTagStats.length === 0 && workoutStats.totalExercises === 0 && (
-              <div className="py-8 text-center">
-                <p className="text-sm text-muted">No fitness data logged yet</p>
+              <div className="py-12 text-center">
+                <p className="text-sm text-secondary">No fitness data logged yet</p>
                 <p className="text-xs text-muted mt-1">Start tracking your meals and workouts</p>
               </div>
             )}
@@ -477,8 +500,8 @@ export default function AnalyticsPage() {
         )}
 
         {/* Philosophy */}
-        <div className="pt-8 border-t border-white/[0.06]">
-          <p className="text-xs text-muted italic">
+        <div className="pt-6 border-t border-white/[0.06]">
+          <p className="text-xs text-muted italic text-center">
             Observational, not aspirational. No goals, no targets, no judgments.
           </p>
         </div>

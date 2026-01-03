@@ -61,12 +61,12 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`fixed left-0 top-0 h-screen bg-black border-r border-white/[0.06] flex flex-col transition-all duration-200 z-50 ${
+      className={`fixed left-0 top-0 h-screen bg-sidebar border-r border-sidebar-border flex flex-col transition-all duration-200 z-50 ${
         collapsed ? "w-14" : "w-56"
       }`}
     >
       {/* Header */}
-      <div className="h-14 flex items-center justify-between px-3 border-b border-white/[0.06]">
+      <div className="h-14 flex items-center justify-between px-3 border-b border-sidebar-border">
         {!collapsed && (
           <span className="text-sm font-medium text-primary tracking-tight">
             Lifegrid
@@ -74,7 +74,7 @@ export function Sidebar() {
         )}
         <button
           onClick={toggleCollapse}
-          className="p-1.5 text-muted hover:text-secondary transition-colors"
+          className="p-1.5 text-muted hover:text-secondary transition-colors rounded-lg"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? (
@@ -87,7 +87,7 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 py-4">
-        <ul className="space-y-0.5 px-2">
+        <ul className="space-y-1 px-2">
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
@@ -96,9 +96,9 @@ export function Sidebar() {
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`flex items-center gap-2.5 px-2.5 py-2 rounded-sm transition-colors ${
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors ${
                     isActive
-                      ? "bg-white/[0.06] text-primary"
+                      ? "bg-white/[0.08] text-primary"
                       : "text-muted hover:text-secondary hover:bg-white/[0.03]"
                   }`}
                   title={collapsed ? item.label : undefined}
@@ -115,11 +115,11 @@ export function Sidebar() {
       </nav>
 
       {/* Footer - Sign out */}
-      <div className="p-2 border-t border-white/[0.06]">
+      <div className="p-2 border-t border-sidebar-border">
         <button
           onClick={handleSignOut}
           disabled={signingOut}
-          className="flex items-center gap-2.5 px-2.5 py-2 w-full rounded-sm text-muted hover:text-secondary hover:bg-white/[0.03] transition-colors disabled:opacity-50"
+          className="flex items-center gap-2.5 px-3 py-2 w-full rounded-lg text-muted hover:text-secondary hover:bg-white/[0.03] transition-colors disabled:opacity-50"
           title={collapsed ? "Sign out" : undefined}
         >
           <LogOut className="w-4 h-4 flex-shrink-0" />

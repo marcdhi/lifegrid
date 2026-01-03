@@ -13,7 +13,15 @@ import type {
   FitnessGoal,
   WorkoutType
 } from "@/lib/types"
-import { ChevronLeft, ChevronRight, Plus, X, Check, Trash2 } from "lucide-react"
+import { Plus, X, Check, Trash2 } from "lucide-react"
+import { DateHeader } from "@/components/ui/date-header"
+import { SectionHeader } from "@/components/ui/section-header"
+import { TextField } from "@/components/ui/text-field"
+import { TimePicker } from "@/components/ui/time-picker"
+import { TagInput } from "@/components/ui/tag-input"
+import { IconButton } from "@/components/ui/icon-button"
+import { Card } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/empty-state"
 
 // Default workout plan for beginners
 const DEFAULT_WORKOUT_PLAN: { day: number; type: WorkoutType }[] = [
@@ -27,17 +35,17 @@ const DEFAULT_WORKOUT_PLAN: { day: number; type: WorkoutType }[] = [
 ]
 
 const WORKOUT_TYPE_LABELS: Record<WorkoutType, string> = {
-  'full_body': 'Full Body',
-  'walk_mobility': 'Walk + Mobility',
-  'rest': 'Rest Day',
+  'full_body': 'Full body',
+  'walk_mobility': 'Walk & mobility',
+  'rest': 'Rest day',
   'optional': 'Optional',
 }
 
 const GOAL_OPTIONS: { value: FitnessGoal; label: string; description: string }[] = [
-  { value: 'get_active', label: 'Get Active', description: 'Start moving more regularly' },
-  { value: 'lose_weight', label: 'Lose Weight', description: 'Gradual, sustainable progress' },
-  { value: 'build_strength', label: 'Build Strength', description: 'Basic strength foundation' },
-  { value: 'stay_healthy', label: 'Stay Healthy', description: 'General wellness maintenance' },
+  { value: 'get_active', label: 'Get active', description: 'Start moving more regularly' },
+  { value: 'lose_weight', label: 'Lose weight', description: 'Gradual, sustainable progress' },
+  { value: 'build_strength', label: 'Build strength', description: 'Basic strength foundation' },
+  { value: 'stay_healthy', label: 'Stay healthy', description: 'General wellness maintenance' },
 ]
 
 function formatTime(time: string): string {
@@ -75,7 +83,6 @@ export default function FitnessPage() {
   const [foodFormTime, setFoodFormTime] = useState(getCurrentTime())
   const [foodFormTags, setFoodFormTags] = useState<string[]>([])
   const [foodFormNotes, setFoodFormNotes] = useState('')
-  const [tagInput, setTagInput] = useState('')
   const [tagSuggestions, setTagSuggestions] = useState<FoodTag[]>([])
   const [showTagSuggestions, setShowTagSuggestions] = useState(false)
   const tagInputRef = useRef<HTMLInputElement>(null)
@@ -284,47 +291,6 @@ export default function FitnessPage() {
     setShowOnboarding(false)
   }
 
-  // Food tag autocomplete
-  const handleTagInputChange = useCallback((value: string) => {
-    setTagInput(value)
-    if (value.trim()) {
-      const filtered = foodTags.filter(t => 
-        t.name.toLowerCase().includes(value.toLowerCase()) &&
-        !foodFormTags.includes(t.name)
-      ).slice(0, 5)
-      setTagSuggestions(filtered)
-      setShowTagSuggestions(filtered.length > 0)
-    } else {
-      setTagSuggestions([])
-      setShowTagSuggestions(false)
-    }
-  }, [foodTags, foodFormTags])
-
-  const addTag = useCallback((tagName: string) => {
-    const normalized = tagName.trim().toLowerCase()
-    if (normalized && !foodFormTags.includes(normalized)) {
-      setFoodFormTags(prev => [...prev, normalized])
-    }
-    setTagInput('')
-    setShowTagSuggestions(false)
-    tagInputRef.current?.focus()
-  }, [foodFormTags])
-
-  const removeTag = useCallback((tagName: string) => {
-    setFoodFormTags(prev => prev.filter(t => t !== tagName))
-  }, [])
-
-  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && tagInput.trim()) {
-      e.preventDefault()
-      addTag(tagInput)
-    } else if (e.key === 'Backspace' && !tagInput && foodFormTags.length > 0) {
-      setFoodFormTags(prev => prev.slice(0, -1))
-    } else if (e.key === 'Escape') {
-      setShowTagSuggestions(false)
-    }
-  }
-
   // Submit food entry
   const handleFoodSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -472,13 +438,13 @@ export default function FitnessPage() {
               <div className="flex flex-col gap-3 pt-4">
                 <button
                   onClick={() => setOnboardingStep(1)}
-                  className="w-full py-3 text-[11px] uppercase tracking-wider text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-sm transition-colors"
+                  className="w-full py-3 text-xs tracking-wide text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-xl transition-colors"
                 >
                   Set up my profile
                 </button>
                 <button
                   onClick={handleSkipOnboarding}
-                  className="text-[11px] uppercase tracking-wider text-muted hover:text-secondary transition-colors"
+                  className="text-xs tracking-wide text-muted hover:text-secondary transition-colors"
                 >
                   Skip for now
                 </button>
@@ -493,51 +459,42 @@ export default function FitnessPage() {
               </p>
               
               <div className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-wider text-muted">Age</label>
-                  <input
-                    type="number"
-                    value={onboardingData.age}
-                    onChange={(e) => setOnboardingData({ ...onboardingData, age: e.target.value })}
-                    placeholder="Optional"
-                    className="w-full bg-transparent border-0 border-b border-white/[0.06] focus:border-white/[0.12] py-2 text-sm text-primary outline-none transition-colors placeholder:text-muted"
-                  />
-                </div>
+                <TextField
+                  label="Age"
+                  type="number"
+                  value={onboardingData.age}
+                  onChange={(e) => setOnboardingData({ ...onboardingData, age: e.target.value })}
+                  placeholder="Optional"
+                />
                 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] uppercase tracking-wider text-muted">Height (cm)</label>
-                    <input
-                      type="number"
-                      value={onboardingData.height_cm}
-                      onChange={(e) => setOnboardingData({ ...onboardingData, height_cm: e.target.value })}
-                      placeholder="Optional"
-                      className="w-full bg-transparent border-0 border-b border-white/[0.06] focus:border-white/[0.12] py-2 text-sm text-primary outline-none transition-colors placeholder:text-muted"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] uppercase tracking-wider text-muted">Weight (kg)</label>
-                    <input
-                      type="number"
-                      value={onboardingData.weight_kg}
-                      onChange={(e) => setOnboardingData({ ...onboardingData, weight_kg: e.target.value })}
-                      placeholder="Optional"
-                      className="w-full bg-transparent border-0 border-b border-white/[0.06] focus:border-white/[0.12] py-2 text-sm text-primary outline-none transition-colors placeholder:text-muted"
-                    />
-                  </div>
+                  <TextField
+                    label="Height (cm)"
+                    type="number"
+                    value={onboardingData.height_cm}
+                    onChange={(e) => setOnboardingData({ ...onboardingData, height_cm: e.target.value })}
+                    placeholder="Optional"
+                  />
+                  <TextField
+                    label="Weight (kg)"
+                    type="number"
+                    value={onboardingData.weight_kg}
+                    onChange={(e) => setOnboardingData({ ...onboardingData, weight_kg: e.target.value })}
+                    placeholder="Optional"
+                  />
                 </div>
               </div>
 
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setOnboardingStep(0)}
-                  className="text-[11px] uppercase tracking-wider text-muted hover:text-secondary transition-colors"
+                  className="text-xs tracking-wide text-muted hover:text-secondary transition-colors"
                 >
                   Back
                 </button>
                 <button
                   onClick={() => setOnboardingStep(2)}
-                  className="flex-1 py-2 text-[11px] uppercase tracking-wider text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-sm transition-colors"
+                  className="flex-1 py-2.5 text-xs tracking-wide text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-xl transition-colors"
                 >
                   Continue
                 </button>
@@ -556,7 +513,7 @@ export default function FitnessPage() {
                   <button
                     key={goal.value}
                     onClick={() => setOnboardingData({ ...onboardingData, goal: goal.value })}
-                    className={`w-full text-left px-4 py-3 rounded-sm transition-colors ${
+                    className={`w-full text-left px-4 py-3 rounded-xl transition-colors ${
                       onboardingData.goal === goal.value
                         ? 'bg-white/[0.06] border border-white/[0.12]'
                         : 'border border-transparent hover:bg-white/[0.03]'
@@ -571,15 +528,15 @@ export default function FitnessPage() {
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setOnboardingStep(1)}
-                  className="text-[11px] uppercase tracking-wider text-muted hover:text-secondary transition-colors"
+                  className="text-xs tracking-wide text-muted hover:text-secondary transition-colors"
                 >
                   Back
                 </button>
                 <button
                   onClick={handleOnboardingComplete}
-                  className="flex-1 py-2 text-[11px] uppercase tracking-wider text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-sm transition-colors"
+                  className="flex-1 py-2.5 text-xs tracking-wide text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-xl transition-colors"
                 >
-                  Get Started
+                  Get started
                 </button>
               </div>
             </div>
@@ -594,159 +551,76 @@ export default function FitnessPage() {
     <div className="min-h-screen p-6 md:p-10">
       <div className="max-w-3xl mx-auto space-y-8">
         {/* Header with date navigation */}
-        <header className="flex items-end justify-between pb-6 border-b border-white/[0.06]">
-          <div className="flex items-baseline gap-4">
-            <span className="text-6xl font-light tracking-tighter text-primary tabular-nums">
-              {dayNum}
-            </span>
-            <div className="flex flex-col">
-              <span className="text-xs uppercase tracking-[0.2em] text-muted">{month}</span>
-              <span className="text-sm text-secondary">{weekday}</span>
-            </div>
-          </div>
-          
-          <nav className="flex items-center gap-1">
-            <button
-              onClick={() => navigateDay(-1)}
-              className="p-2 text-muted hover:text-secondary transition-colors"
-              aria-label="Previous day"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setCurrentDate(getTodayString())}
-              className="px-3 py-1 text-[11px] uppercase tracking-wider text-muted hover:text-secondary transition-colors"
-            >
-              Today
-            </button>
-            <button
-              onClick={() => navigateDay(1)}
-              className="p-2 text-muted hover:text-secondary transition-colors"
-              aria-label="Next day"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </nav>
-        </header>
+        <DateHeader
+          date={currentDate}
+          onPrevious={() => navigateDay(-1)}
+          onNext={() => navigateDay(1)}
+          onToday={() => setCurrentDate(getTodayString())}
+        />
 
         {/* Food Section */}
         <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-[10px] uppercase tracking-wider text-muted">Food</h2>
-            <button
-              onClick={() => setShowFoodForm(!showFoodForm)}
-              className="p-1 text-muted hover:text-secondary transition-colors"
-              aria-label={showFoodForm ? 'Cancel' : 'Add food'}
-            >
-              {showFoodForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-            </button>
-          </div>
+          <SectionHeader
+            action={
+              <IconButton onClick={() => setShowFoodForm(!showFoodForm)}>
+                {showFoodForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              </IconButton>
+            }
+          >
+            Food
+          </SectionHeader>
 
           {/* Food Form */}
           {showFoodForm && (
-            <form onSubmit={handleFoodSubmit} className="space-y-4 pb-4 border-b border-white/[0.06] animate-fade">
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase tracking-wider text-muted">Time</label>
-                <input
-                  type="time"
-                  value={foodFormTime}
-                  onChange={(e) => setFoodFormTime(e.target.value)}
-                  required
-                  className="w-full bg-transparent border-0 border-b border-white/[0.06] focus:border-white/[0.12] py-2 text-sm text-primary outline-none transition-colors"
-                />
-              </div>
+            <form onSubmit={handleFoodSubmit} className="space-y-4 pb-6 border-b border-white/[0.06] animate-fade">
+              <TimePicker
+                label="Time"
+                value={foodFormTime}
+                onChange={(e) => setFoodFormTime(e.target.value)}
+                required
+              />
 
-              <div className="space-y-1 relative">
-                <label className="text-[10px] uppercase tracking-wider text-muted">What did you eat?</label>
-                
-                {/* Tags display */}
-                {foodFormTags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 pb-2">
-                    {foodFormTags.map(tag => (
-                      <span
-                        key={tag}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-xs text-secondary bg-white/[0.04] rounded-sm"
-                      >
-                        {tag}
-                        <button
-                          type="button"
-                          onClick={() => removeTag(tag)}
-                          className="text-muted hover:text-primary transition-colors"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
+              <TagInput
+                label="What did you eat?"
+                tags={foodFormTags}
+                onTagsChange={setFoodFormTags}
+                suggestions={foodTags.map(t => ({ id: t.id, name: t.name, count: t.use_count }))}
+                placeholder="Type food name and press Enter"
+              />
 
-                {/* Tag input */}
-                <input
-                  ref={tagInputRef}
-                  type="text"
-                  value={tagInput}
-                  onChange={(e) => handleTagInputChange(e.target.value)}
-                  onKeyDown={handleTagKeyDown}
-                  onFocus={() => tagInput.trim() && setShowTagSuggestions(tagSuggestions.length > 0)}
-                  placeholder={foodFormTags.length === 0 ? "Type food name and press Enter" : "Add more..."}
-                  className="w-full bg-transparent border-0 border-b border-white/[0.06] focus:border-white/[0.12] py-2 text-sm text-primary outline-none transition-colors placeholder:text-muted"
-                />
-
-                {/* Autocomplete dropdown */}
-                {showTagSuggestions && (
-                  <div className="absolute z-10 left-0 right-0 top-full mt-1 bg-[#0A0A0A] border border-white/[0.06] rounded-sm overflow-hidden">
-                    {tagSuggestions.map(tag => (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() => addTag(tag.name)}
-                        className="w-full text-left px-3 py-2 text-sm text-secondary hover:bg-white/[0.04] transition-colors"
-                      >
-                        {tag.name}
-                        <span className="text-xs text-muted ml-2">({tag.use_count})</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase tracking-wider text-muted">Notes (optional)</label>
-                <input
-                  type="text"
-                  value={foodFormNotes}
-                  onChange={(e) => setFoodFormNotes(e.target.value)}
-                  placeholder="Any context..."
-                  className="w-full bg-transparent border-0 border-b border-white/[0.06] focus:border-white/[0.12] py-2 text-sm text-primary outline-none transition-colors placeholder:text-muted"
-                />
-              </div>
+              <TextField
+                label="Notes (optional)"
+                value={foodFormNotes}
+                onChange={(e) => setFoodFormNotes(e.target.value)}
+                placeholder="Any context..."
+              />
 
               <button
                 type="submit"
                 disabled={foodFormTags.length === 0}
-                className="text-[11px] uppercase tracking-wider text-secondary hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="text-xs tracking-wide text-secondary hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Add Entry
+                Add entry
               </button>
             </form>
           )}
 
           {/* Food entries list */}
           {foodEntries.length === 0 ? (
-            <p className="text-sm text-muted py-4">No food logged yet</p>
+            <EmptyState title="No food logged yet" />
           ) : (
             <div className="space-y-2">
               {foodEntries.map(entry => (
                 <div
                   key={entry.id}
-                  className="flex items-start justify-between py-2 group"
+                  className="flex items-start justify-between py-3 group"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-3">
                       <span className="text-xs text-muted tabular-nums">{formatTime(entry.time)}</span>
-                      <div className="flex flex-wrap gap-1">
-                        {entry.food_tags.map(tag => (
-                          <span key={tag} className="text-sm text-secondary">{tag}</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {entry.food_tags.map((tag, idx) => (
+                          <span key={idx} className="text-sm text-secondary">{tag}</span>
                         ))}
                       </div>
                     </div>
@@ -754,13 +628,13 @@ export default function FitnessPage() {
                       <p className="text-xs text-muted mt-0.5 ml-14">{entry.notes}</p>
                     )}
                   </div>
-                  <button
+                  <IconButton
                     onClick={() => handleDeleteFood(entry.id)}
-                    className="p-1 text-muted opacity-0 group-hover:opacity-100 hover:text-destructive transition-all"
-                    aria-label="Delete entry"
+                    variant="destructive"
+                    className="opacity-0 group-hover:opacity-100"
                   >
                     <Trash2 className="w-3 h-3" />
-                  </button>
+                  </IconButton>
                 </div>
               ))}
             </div>
@@ -769,40 +643,36 @@ export default function FitnessPage() {
 
         {/* Workout Section */}
         <section className="space-y-4 pt-6 border-t border-white/[0.06]">
-          <div className="flex items-center justify-between">
-            <h2 className="text-[10px] uppercase tracking-wider text-muted">
-              Workout
-              {todaysPlan && (
-                <span className="text-secondary ml-2">
-                  — {WORKOUT_TYPE_LABELS[todaysPlan.workout_type]}
-                </span>
-              )}
-            </h2>
-          </div>
+          <SectionHeader>
+            Workout
+            {todaysPlan && (
+              <span className="text-secondary ml-2">
+                — {WORKOUT_TYPE_LABELS[todaysPlan.workout_type]}
+              </span>
+            )}
+          </SectionHeader>
 
           {!todaysPlan || todaysPlan.workout_type === 'rest' ? (
-            <div className="py-8 text-center">
-              <p className="text-sm text-secondary">Rest day</p>
-              <p className="text-xs text-muted mt-1">Take it easy. Recovery is part of the process.</p>
-            </div>
+            <EmptyState
+              title="Rest day"
+              description="Take it easy. Recovery is part of the process."
+              className="py-8"
+            />
           ) : (
             <div className="space-y-3">
               {todaysExercises.map(exercise => {
                 const isCompleted = completions.some(c => c.exercise_id === exercise.id)
                 
                 return (
-                  <div
+                  <Card
                     key={exercise.id}
-                    className={`p-4 rounded-sm border transition-colors ${
-                      isCompleted
-                        ? 'border-white/[0.08] bg-white/[0.02]'
-                        : 'border-white/[0.04] hover:border-white/[0.08]'
-                    }`}
+                    variant={isCompleted ? "default" : "interactive"}
+                    className={isCompleted ? "bg-white/[0.02]" : ""}
                   >
                     <div className="flex items-start gap-3">
                       <button
                         onClick={() => handleExerciseToggle(exercise.id)}
-                        className={`mt-0.5 w-5 h-5 rounded-sm border flex-shrink-0 flex items-center justify-center transition-colors ${
+                        className={`mt-0.5 w-5 h-5 rounded-lg border flex-shrink-0 flex items-center justify-center transition-colors ${
                           isCompleted
                             ? 'bg-white/[0.1] border-white/[0.2] text-primary'
                             : 'border-white/[0.1] hover:border-white/[0.2]'
@@ -830,7 +700,7 @@ export default function FitnessPage() {
                         </p>
                       </div>
                     </div>
-                  </div>
+                  </Card>
                 )
               })}
 
@@ -847,7 +717,7 @@ export default function FitnessPage() {
 
         {/* Weekly Overview */}
         <section className="pt-6 border-t border-white/[0.06]">
-          <h2 className="text-[10px] uppercase tracking-wider text-muted mb-4">This Week</h2>
+          <SectionHeader className="mb-4">This week</SectionHeader>
           <div className="flex gap-2">
             {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((dayLabel, index) => {
               const plan = workoutPlans.find(p => p.day_of_week === index)
@@ -856,14 +726,14 @@ export default function FitnessPage() {
               return (
                 <div
                   key={index}
-                  className={`flex-1 text-center py-2 rounded-sm ${
+                  className={`flex-1 text-center py-3 rounded-lg transition-colors ${
                     isToday ? 'bg-white/[0.04]' : ''
                   }`}
                 >
-                  <span className={`text-[10px] uppercase ${isToday ? 'text-primary' : 'text-muted'}`}>
+                  <span className={`text-[10px] ${isToday ? 'text-primary' : 'text-muted'}`}>
                     {dayLabel}
                   </span>
-                  <div className="mt-1">
+                  <div className="mt-1.5">
                     {plan?.workout_type === 'rest' ? (
                       <span className="text-[10px] text-muted">—</span>
                     ) : plan?.workout_type === 'optional' ? (

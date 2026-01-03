@@ -93,21 +93,21 @@ export function HourGrid({ hours, categories, onHourUpdate, onHourClear }: HourG
 
   return (
     <div className="relative">
-      {/* Active category indicator - minimal */}
+      {/* Active category indicator */}
       {selectedCategory && (
-        <div className="mb-4 flex items-center gap-3 py-2 border-b border-white/[0.06]">
+        <div className="mb-4 flex items-center gap-3 py-2.5 px-3 bg-white/[0.02] rounded-lg border border-white/[0.06]">
           <div
-            className="w-3 h-3 rounded-sm"
+            className="w-3 h-3 rounded-md"
             style={{
               backgroundColor: getCategoryColor(categories.find(c => c.id === selectedCategory))
             }}
           />
-          <span className="text-xs text-secondary uppercase tracking-wider">
+          <span className="text-xs text-secondary tracking-wide">
             {categories.find(c => c.id === selectedCategory)?.name || 'Unknown'}
           </span>
           <button
             onClick={() => setSelectedCategory(null)}
-            className="ml-auto text-[10px] text-muted hover:text-secondary uppercase tracking-wider transition-colors"
+            className="ml-auto text-xs text-muted hover:text-secondary tracking-wide transition-colors"
           >
             Clear
           </button>
@@ -117,7 +117,7 @@ export function HourGrid({ hours, categories, onHourUpdate, onHourClear }: HourG
       {/* Hour grid - 8 columns, compact, pixel-like */}
       <div
         ref={gridRef}
-        className="grid grid-cols-8 gap-px bg-white/[0.03] select-none"
+        className="grid grid-cols-8 gap-1 select-none"
         onContextMenu={(e) => e.preventDefault()}
       >
         {hours.map((hourData) => {
@@ -127,9 +127,9 @@ export function HourGrid({ hours, categories, onHourUpdate, onHourClear }: HourG
           return (
             <div
               key={hourData.hour}
-              className="hour-cell relative aspect-[1.2] cursor-pointer group"
+              className="hour-cell relative aspect-[1.2] cursor-pointer group rounded-xl overflow-hidden"
               style={{
-                backgroundColor: category ? bgColor : '#0A0A0A',
+                backgroundColor: category ? bgColor : '#0D0D0D',
               }}
               onMouseDown={(e) => handleMouseDown(hourData.hour, e)}
               onMouseEnter={() => handleMouseEnter(hourData.hour)}
@@ -138,7 +138,7 @@ export function HourGrid({ hours, categories, onHourUpdate, onHourClear }: HourG
             >
               {/* Hour label - top left, tiny, muted */}
               <span
-                className={`absolute top-1 left-1.5 text-[9px] font-mono transition-opacity ${
+                className={`absolute top-1.5 left-2 text-[9px] font-mono transition-opacity ${
                   category 
                     ? 'text-white/40 group-hover:text-white/60' 
                     : 'text-muted group-hover:text-secondary'
@@ -154,7 +154,7 @@ export function HourGrid({ hours, categories, onHourUpdate, onHourClear }: HourG
         })}
       </div>
 
-      {/* Category picker popover - minimal */}
+      {/* Category picker popover */}
       {showCategoryPicker && pickerPosition && (
         <>
           <div
@@ -165,21 +165,21 @@ export function HourGrid({ hours, categories, onHourUpdate, onHourClear }: HourG
             }}
           />
           <div
-            className="fixed z-50 bg-[#0A0A0A] border border-white/[0.06] rounded-sm p-1.5 w-56 max-h-80 overflow-y-auto animate-fade"
+            className="fixed z-50 bg-popover border border-white/[0.06] rounded-xl p-1.5 w-56 max-h-80 overflow-y-auto animate-fade shadow-lg"
             style={{
               left: `${Math.min(pickerPosition.x, window.innerWidth - 240)}px`,
               top: `${Math.min(pickerPosition.y, window.innerHeight - 340)}px`,
             }}
           >
-            <div className="space-y-px">
+            <div className="space-y-0.5">
               {categories.map((category) => (
                 <button
                   key={category.id}
                   onClick={() => handleCategorySelect(category.id)}
-                  className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-sm hover:bg-white/[0.04] transition-colors text-left group"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-white/[0.04] transition-colors text-left group"
                 >
                   <div
-                    className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
+                    className="w-3 h-3 rounded-md flex-shrink-0"
                     style={{ backgroundColor: getCategoryColor(category) }}
                   />
                   <span className="text-xs text-secondary group-hover:text-primary transition-colors">
@@ -194,22 +194,22 @@ export function HourGrid({ hours, categories, onHourUpdate, onHourClear }: HourG
 
       {/* Category palette - horizontal, compact */}
       <div className="mt-6 pt-4 border-t border-white/[0.06]">
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-2">
           {categories.map((category) => (
             <button
               key={category.id}
               onClick={() => setSelectedCategory(category.id)}
-              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-sm transition-all text-left ${
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-left ${
                 selectedCategory === category.id
                   ? 'bg-white/[0.08] ring-1 ring-white/10'
                   : 'hover:bg-white/[0.04]'
               }`}
             >
               <div
-                className="w-2 h-2 rounded-sm flex-shrink-0"
+                className="w-2.5 h-2.5 rounded-md flex-shrink-0"
                 style={{ backgroundColor: getCategoryColor(category) }}
               />
-              <span className={`text-[11px] ${
+              <span className={`text-xs ${
                 selectedCategory === category.id ? 'text-primary' : 'text-secondary'
               }`}>
                 {category.name}

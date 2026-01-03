@@ -30,8 +30,11 @@ export interface HourLog {
   id: string
   user_id: string
   day_id: string
-  hour: number // 0-23
+  hour: number // 0-23 (start time)
+  start_offset: number // 0-59 (minute offset)
+  duration_minutes: number // how long the block lasts (default 60)
   category_id: string
+  category?: Category // Joined from categories table
   note?: string
   created_at: string
   updated_at: string

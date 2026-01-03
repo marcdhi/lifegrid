@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import type { Day, HourLog, Category } from "@/lib/types"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { PageHeader } from "@/components/ui/page-header"
 
 // Dusty, desaturated category colors (Apple-like)
 const categoryColorMap: Record<string, string> = {
@@ -34,7 +35,7 @@ interface DayData {
   dayRecord?: Day
 }
 
-const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 export default function YearPage() {
   const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear())
@@ -148,7 +149,18 @@ export default function YearPage() {
 
   // Get category for a specific hour on a specific day
   const getHourCategory = (logs: HourLog[], hour: number): Category | undefined => {
-    const log = logs.find(l => l.hour === hour)
+    // Find a log that covers this hour (checking duration and intersection)
+    const log = logs.find(l => {
+      const startTotalMinutes = l.hour * 60 + (l.start_offset || 0)
+      const endTotalMinutes = startTotalMinutes + l.duration_minutes
+      
+      const cellStartMinutes = hour * 60
+      const cellEndMinutes = (hour + 1) * 60
+      
+      // Check for intersection: Max(Start1, Start2) < Min(End1, End2)
+      return Math.max(startTotalMinutes, cellStartMinutes) < Math.min(endTotalMinutes, cellEndMinutes)
+    })
+
     if (!log) return undefined
     return categories.find(c => c.id === log.category_id)
   }
@@ -170,47 +182,46 @@ export default function YearPage() {
     <div className="min-h-screen p-6 md:p-10">
       <div className="max-w-[1400px] mx-auto space-y-8">
         {/* Header */}
-        <header className="flex items-end justify-between pb-6 border-b border-white/[0.06]">
-          <div className="flex items-baseline gap-4">
-            <span className="text-5xl font-light tracking-tighter text-primary tabular-nums">
+        <PageHeader
+          title={
+            <span className="text-5xl font-light tracking-tight text-primary tabular-nums">
               {currentYear}
             </span>
-            <span className="text-xs uppercase tracking-[0.2em] text-muted">
-              {days.length} days tracked
-            </span>
-          </div>
-          
-          <nav className="flex items-center gap-1">
-            <button
-              onClick={() => setCurrentYear(currentYear - 1)}
-              className="p-2 text-muted hover:text-secondary transition-colors"
-              aria-label="Previous year"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setCurrentYear(new Date().getFullYear())}
-              className="px-3 py-1 text-[11px] uppercase tracking-wider text-muted hover:text-secondary transition-colors"
-            >
-              This Year
-            </button>
-            <button
-              onClick={() => setCurrentYear(currentYear + 1)}
-              className="p-2 text-muted hover:text-secondary transition-colors"
-              aria-label="Next year"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </nav>
-        </header>
+          }
+          subtitle={`${days.length} days tracked`}
+          actions={
+            <nav className="flex items-center gap-1">
+              <button
+                onClick={() => setCurrentYear(currentYear - 1)}
+                className="p-2 text-muted hover:text-secondary transition-colors rounded-lg"
+                aria-label="Previous year"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setCurrentYear(new Date().getFullYear())}
+                className="px-3 py-1.5 text-xs tracking-wide text-muted hover:text-secondary transition-colors rounded-lg"
+              >
+                This year
+              </button>
+              <button
+                onClick={() => setCurrentYear(currentYear + 1)}
+                className="p-2 text-muted hover:text-secondary transition-colors rounded-lg"
+                aria-label="Next year"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </nav>
+          }
+        />
 
         {/* Year barcode - the compressed memory object */}
-        <div className="space-y-0.5">
+        <div className="space-y-1">
           {yearData.map(({ month, monthName, days: monthDays }) => (
             <div key={month} className="flex items-start gap-3">
               {/* Month label */}
-              <div className="w-8 flex-shrink-0 pt-0.5">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-muted">
+              <div className="w-10 flex-shrink-0 pt-1">
+                <span className="text-[10px] font-mono tracking-wider text-muted">
                   {monthName}
                 </span>
               </div>
@@ -220,11 +231,11 @@ export default function YearPage() {
                 {monthDays.map((dayData) => (
                   <div
                     key={dayData.date}
-                    className="flex items-center gap-1 group cursor-pointer"
+                    className="flex items-center gap-2 group cursor-pointer"
                     onClick={() => handleDayClick(dayData.date)}
                   >
                     {/* Day number */}
-                    <span className="w-5 text-right text-[9px] font-mono text-muted group-hover:text-secondary transition-colors tabular-nums">
+                    <span className="w-6 text-right text-[9px] font-mono text-muted group-hover:text-secondary transition-colors tabular-nums">
                       {String(dayData.dayNumber).padStart(2, '0')}
                     </span>
                     
@@ -237,9 +248,9 @@ export default function YearPage() {
                         return (
                           <div
                             key={hour}
-                            className="year-tile flex-1 h-[6px] rounded-[1px]"
+                            className="year-tile flex-1 h-[7px] rounded-sm"
                             style={{
-                              backgroundColor: category ? color : '#111',
+                              backgroundColor: category ? color : '#0D0D0D',
                             }}
                             title={`${dayData.date} ${hour}:00 - ${category?.name || 'Empty'}`}
                           />
@@ -257,9 +268,9 @@ export default function YearPage() {
         <div className="pt-6 border-t border-white/[0.06]">
           <div className="flex flex-wrap gap-x-4 gap-y-2">
             {categories.map((category) => (
-              <div key={category.id} className="flex items-center gap-1.5">
+              <div key={category.id} className="flex items-center gap-2">
                 <div
-                  className="w-2 h-2 rounded-[1px]"
+                  className="w-2.5 h-2.5 rounded-sm"
                   style={{ backgroundColor: getCategoryColor(category) }}
                 />
                 <span className="text-[10px] text-muted">{category.name}</span>

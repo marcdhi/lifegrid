@@ -3,11 +3,12 @@
 import { useEffect, useState, Suspense, useRef, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
-import { getTodayString, getDateLabel, getAllHours } from "@/lib/utils"
-import type { Category, Day, HourLog, HourCellData } from "@/lib/types"
-import { HourGrid } from "@/components/hour-grid"
+import { getTodayString } from "@/lib/utils"
+import type { Category, Day, HourLog } from "@/lib/types"
+import { HourGrid } from "@/components/hour-grid-timeline"
 import { FitnessSummary } from "@/components/fitness-summary"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { DateHeader } from "@/components/ui/date-header"
+import { TextareaField } from "@/components/ui/textarea-field"
 
 function TodayContent() {
   const searchParams = useSearchParams()
@@ -62,7 +63,7 @@ function TodayContent() {
 
   // Fetch or create day + hour logs
   useEffect(() => {
-    if (!userId) return
+    if (!userId || categories.length === 0) return
 
     const fetchDayData = async () => {
       setLoading(true)
@@ -104,7 +105,15 @@ function TodayContent() {
           .eq('day_id', existingDay.id)
 
         if (!logsError && logs) {
-          setHourLogs(logs)
+          // Join categories manually
+          const logsWithCategories = logs.map(log => {
+            const category = categories.find(c => c.id === log.category_id)
+            return {
+              ...log,
+              category: category || undefined
+            }
+          })
+          setHourLogs(logsWithCategories as HourLog[])
         }
       }
 
@@ -112,7 +121,7 @@ function TodayContent() {
     }
 
     fetchDayData()
-  }, [supabase, userId, currentDate])
+  }, [supabase, userId, currentDate, categories])
   
   // Debounced save for highlights
   const saveHighlights = useCallback(async (value: string) => {
@@ -158,56 +167,61 @@ function TodayContent() {
     }, 500)
   }
 
-  const handleHourUpdate = async (hour: number, categoryId: string) => {
-    if (!day || !userId) return
+  const handleBlockUpdate = async (id: string, updates: Partial<HourLog>) => {
+    const { error } = await supabase
+      .from('hour_logs')
+      .update(updates)
+      .eq('id', id)
 
-    // Check if hour log already exists
-    const existingLog = hourLogs.find(log => log.hour === hour)
-
-    if (existingLog) {
-      // Update existing
-      const { error } = await supabase
-        .from('hour_logs')
-        .update({ category_id: categoryId })
-        .eq('id', existingLog.id)
-
-      if (!error) {
-        setHourLogs(prev =>
-          prev.map(log =>
-            log.hour === hour ? { ...log, category_id: categoryId } : log
-          )
-        )
-      }
-    } else {
-      // Insert new
-      const { data: newLog, error } = await supabase
-        .from('hour_logs')
-        .insert({
-          user_id: userId,
-          day_id: day.id,
-          hour,
-          category_id: categoryId,
+    if (!error) {
+      setHourLogs(prev =>
+        prev.map(log => {
+          if (log.id === id) {
+            const updated = { ...log, ...updates }
+            // If category_id changed, update category reference
+            if (updates.category_id) {
+              const category = categories.find(c => c.id === updates.category_id)
+              return { ...updated, category: category || undefined }
+            }
+            return updated
+          }
+          return log
         })
-        .select()
-        .single()
-
-      if (!error && newLog) {
-        setHourLogs(prev => [...prev, newLog])
-      }
+      )
     }
   }
 
-  const handleHourClear = async (hour: number) => {
-    const existingLog = hourLogs.find(log => log.hour === hour)
-    if (!existingLog) return
+  const handleBlockCreate = async (hour: number, categoryId: string, durationMinutes: number, startOffset?: number) => {
+    if (!day || !userId) return
 
+    const { data: newLog, error } = await supabase
+      .from('hour_logs')
+      .insert({
+        user_id: userId,
+        day_id: day.id,
+        hour,
+        category_id: categoryId,
+        duration_minutes: durationMinutes,
+        start_offset: startOffset || 0,
+      })
+      .select()
+      .single()
+
+    if (!error && newLog) {
+      // Join category
+      const category = categories.find(c => c.id === categoryId)
+      setHourLogs(prev => [...prev, { ...newLog, category: category || undefined }])
+    }
+  }
+
+  const handleBlockDelete = async (id: string) => {
     const { error } = await supabase
       .from('hour_logs')
       .delete()
-      .eq('id', existingLog.id)
+      .eq('id', id)
 
     if (!error) {
-      setHourLogs(prev => prev.filter(log => log.hour !== hour))
+      setHourLogs(prev => prev.filter(log => log.id !== id))
     }
   }
 
@@ -220,113 +234,50 @@ function TodayContent() {
     setCurrentDate(`${year}-${month}-${day}`)
   }
 
-  // Build hour cell data
-  const hourCellData: HourCellData[] = getAllHours().map(hour => {
-    const log = hourLogs.find(l => l.hour === hour)
-    const category = log ? categories.find(c => c.id === log.category_id) : undefined
-
-    return {
-      hour,
-      category,
-      note: log?.note,
-      logId: log?.id,
-    }
-  })
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-muted">Loading...</p>
       </div>
     )
   }
 
-  // Format date for display
-  const formatDateDisplay = (dateStr: string) => {
-    const date = new Date(dateStr + 'T00:00:00')
-    const day = date.getDate()
-    const month = date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()
-    const weekday = date.toLocaleDateString('en-US', { weekday: 'long' })
-    return { day, month, weekday }
-  }
-  
-  const { day: dayNum, month, weekday } = formatDateDisplay(currentDate)
-
   return (
     <div className="min-h-screen p-6 md:p-10">
-      <div className="max-w-4xl mx-auto space-y-8">
-        {/* Header - typography-led, date dominates emotionally */}
-        <header className="flex items-end justify-between pb-6 border-b border-white/[0.06]">
-          <div className="flex items-baseline gap-4">
-            {/* Large date number - anchor */}
-            <span className="text-6xl font-light tracking-tighter text-primary tabular-nums">
-              {dayNum}
-            </span>
-            <div className="flex flex-col">
-              <span className="text-xs uppercase tracking-[0.2em] text-muted">{month}</span>
-              <span className="text-sm text-secondary">{weekday}</span>
-            </div>
-          </div>
-          
-          {/* Navigation - minimal */}
-          <nav className="flex items-center gap-1">
-            <button
-              onClick={() => navigateDay(-1)}
-              className="p-2 text-muted hover:text-secondary transition-colors"
-              aria-label="Previous day"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setCurrentDate(getTodayString())}
-              className="px-3 py-1 text-[11px] uppercase tracking-wider text-muted hover:text-secondary transition-colors"
-            >
-              Today
-            </button>
-            <button
-              onClick={() => navigateDay(1)}
-              className="p-2 text-muted hover:text-secondary transition-colors"
-              aria-label="Next day"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </nav>
-        </header>
-
-        {/* Hour grid */}
-        <HourGrid
-          hours={hourCellData}
-          categories={categories}
-          onHourUpdate={handleHourUpdate}
-          onHourClear={handleHourClear}
+      <div className="max-w-5xl mx-auto space-y-8">
+        {/* Date Header */}
+        <DateHeader
+          date={currentDate}
+          onPrevious={() => navigateDay(-1)}
+          onNext={() => navigateDay(1)}
+          onToday={() => setCurrentDate(getTodayString())}
         />
 
-        {/* Day notes - inline, minimal design */}
-        <div className="space-y-6 pt-8 border-t border-white/[0.06]">
-          <div className="space-y-1">
-            <label className="text-[11px] uppercase tracking-wider text-secondary">
-              Highlights
-            </label>
-            <textarea
-              value={localHighlights}
-              onChange={handleHighlightsChange}
-              placeholder="What stood out today?"
-              className="w-full bg-transparent text-primary border-0 border-b border-transparent focus:border-white/[0.06] resize-none focus:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:rounded-lg placeholder:text-muted text-sm py-2 transition-colors"
-              rows={2}
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[11px] uppercase tracking-wider text-secondary">
-              Notes
-            </label>
-            <textarea
-              value={localNotes}
-              onChange={handleNotesChange}
-              placeholder="Any other thoughts..."
-              className="w-full bg-transparent text-primary border-0 border-b border-transparent focus:border-white/[0.06] resize-none focus:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:rounded-lg placeholder:text-muted text-sm py-2 transition-colors"
-              rows={2}
-            />
-          </div>
+        {/* Hour grid timeline */}
+        <HourGrid
+          hours={hourLogs}
+          categories={categories}
+          onBlockUpdate={handleBlockUpdate}
+          onBlockCreate={handleBlockCreate}
+          onBlockDelete={handleBlockDelete}
+        />
+
+        {/* Day notes */}
+        <div className="space-y-6 pt-6 border-t border-white/[0.06]">
+          <TextareaField
+            label="Highlights"
+            value={localHighlights}
+            onChange={handleHighlightsChange}
+            placeholder="What stood out today?"
+            rows={2}
+          />
+          <TextareaField
+            label="Notes"
+            value={localNotes}
+            onChange={handleNotesChange}
+            placeholder="Any other thoughts..."
+            rows={2}
+          />
         </div>
 
         {/* Fitness Summary */}
@@ -342,7 +293,7 @@ export default function TodayPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-muted">Loading...</p>
       </div>
     }>
       <TodayContent />

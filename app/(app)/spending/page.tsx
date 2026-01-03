@@ -4,6 +4,12 @@ import { useEffect, useState, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { Day, SpendEntry } from "@/lib/types"
 import { Trash2, Plus, X } from "lucide-react"
+import { PageHeader } from "@/components/ui/page-header"
+import { SectionHeader } from "@/components/ui/section-header"
+import { DatePicker } from "@/components/ui/date-picker"
+import { TextField } from "@/components/ui/text-field"
+import { IconButton } from "@/components/ui/icon-button"
+import { EmptyState } from "@/components/ui/empty-state"
 
 // Format currency with Indian locale
 function formatCurrency(amount: number, currency: string = 'INR'): string {
@@ -30,7 +36,23 @@ export default function SpendingPage() {
   const [formDescription, setFormDescription] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
+  // Category autocomplete
+  const [showCategorySuggestions, setShowCategorySuggestions] = useState(false)
+  
   const supabase = createClient()
+
+  // Get unique categories from existing entries
+  const existingCategories = useMemo(() => {
+    const categories = new Set(spendEntries.map(e => e.category))
+    return Array.from(categories).sort()
+  }, [spendEntries])
+
+  const categorySuggestions = useMemo(() => {
+    if (!formCategory.trim()) return []
+    return existingCategories.filter(cat => 
+      cat.toLowerCase().includes(formCategory.toLowerCase())
+    ).slice(0, 5)
+  }, [formCategory, existingCategories])
 
   // Fetch user
   useEffect(() => {
@@ -194,34 +216,29 @@ export default function SpendingPage() {
     <div className="min-h-screen p-6 md:p-10">
       <div className="max-w-3xl mx-auto space-y-8">
         {/* Header */}
-        <header className="flex items-end justify-between pb-6 border-b border-white/[0.06]">
-          <div>
-            <span className="text-4xl font-light tracking-tighter text-primary tabular-nums">
+        <PageHeader
+          title={
+            <span className="text-4xl font-light tracking-tight text-primary tabular-nums">
               {formatCurrency(totalSpent)}
             </span>
-            <p className="text-xs text-muted mt-1 uppercase tracking-wider">
-              {timeRange === 'week' ? 'Last 7 days' : timeRange === 'month' ? 'Last 30 days' : 'This year'}
-            </p>
-          </div>
-          
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="p-2 text-muted hover:text-secondary transition-colors"
-            aria-label={showForm ? 'Cancel' : 'Add entry'}
-          >
-            {showForm ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-          </button>
-        </header>
+          }
+          subtitle={timeRange === 'week' ? 'Last 7 days' : timeRange === 'month' ? 'Last 30 days' : 'This year'}
+          actions={
+            <IconButton onClick={() => setShowForm(!showForm)}>
+              {showForm ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+            </IconButton>
+          }
+        />
 
-        {/* Time range selector - minimal */}
+        {/* Time range selector */}
         <nav className="flex gap-4">
           {(['week', 'month', 'year'] as const).map((range) => (
             <button
               key={range}
               onClick={() => setTimeRange(range)}
-              className={`text-[11px] uppercase tracking-wider transition-colors ${
+              className={`text-xs tracking-wide transition-colors rounded-lg px-3 py-1.5 ${
                 timeRange === range
-                  ? 'text-primary'
+                  ? 'text-primary bg-white/[0.04]'
                   : 'text-muted hover:text-secondary'
               }`}
             >
@@ -230,76 +247,97 @@ export default function SpendingPage() {
           ))}
         </nav>
 
-        {/* New entry form - inline, minimal */}
+        {/* New entry form */}
         {showForm && (
           <form onSubmit={handleSubmit} className="space-y-4 pb-6 border-b border-white/[0.06] animate-fade">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase tracking-wider text-muted">Date</label>
-                <input
-                  type="date"
-                  value={formDate}
-                  onChange={(e) => setFormDate(e.target.value)}
-                  required
-                  className="w-full bg-transparent border-0 border-b border-white/[0.06] focus:border-white/[0.12] py-2 text-sm text-primary outline-none transition-colors"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase tracking-wider text-muted">Amount (₹)</label>
-                <input
-                  type="number"
-                  step="1"
-                  value={formAmount}
-                  onChange={(e) => setFormAmount(e.target.value)}
-                  placeholder="0"
-                  required
-                  className="w-full bg-transparent border-0 border-b border-white/[0.06] focus:border-white/[0.12] py-2 text-sm text-primary outline-none transition-colors placeholder:text-muted"
-                />
-              </div>
+              <DatePicker
+                label="Date"
+                value={formDate}
+                onChange={(e) => setFormDate(e.target.value)}
+                required
+              />
+              <TextField
+                label="Amount (₹)"
+                type="number"
+                step="1"
+                value={formAmount}
+                onChange={(e) => setFormAmount(e.target.value)}
+                placeholder="0"
+                required
+              />
             </div>
-            <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-wider text-muted">Category</label>
-              <input
+            
+            <div className="space-y-1 relative">
+              <TextField
+                label="Category"
                 value={formCategory}
-                onChange={(e) => setFormCategory(e.target.value)}
+                onChange={(e) => {
+                  setFormCategory(e.target.value)
+                  setShowCategorySuggestions(e.target.value.trim().length > 0)
+                }}
+                onFocus={() => formCategory.trim() && setShowCategorySuggestions(true)}
                 placeholder="Food, Transport, etc."
                 required
-                className="w-full bg-transparent border-0 border-b border-white/[0.06] focus:border-white/[0.12] py-2 text-sm text-primary outline-none transition-colors placeholder:text-muted"
               />
+              
+              {/* Category autocomplete */}
+              {showCategorySuggestions && categorySuggestions.length > 0 && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowCategorySuggestions(false)}
+                  />
+                  <div className="absolute z-50 left-0 right-0 top-full mt-2 bg-popover border border-white/[0.06] rounded-lg overflow-hidden shadow-lg">
+                    {categorySuggestions.map(category => (
+                      <button
+                        key={category}
+                        type="button"
+                        onClick={() => {
+                          setFormCategory(category)
+                          setShowCategorySuggestions(false)
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm text-secondary hover:bg-white/[0.04] transition-colors"
+                      >
+                        {category}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
-            <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-wider text-muted">Description</label>
-              <input
-                value={formDescription}
-                onChange={(e) => setFormDescription(e.target.value)}
-                placeholder="Optional"
-                className="w-full bg-transparent border-0 border-b border-white/[0.06] focus:border-white/[0.12] py-2 text-sm text-primary outline-none transition-colors placeholder:text-muted"
-              />
-            </div>
+            
+            <TextField
+              label="Description (optional)"
+              value={formDescription}
+              onChange={(e) => setFormDescription(e.target.value)}
+              placeholder="Optional"
+            />
+            
             <button
               type="submit"
               disabled={submitting}
-              className="text-[11px] uppercase tracking-wider text-secondary hover:text-primary transition-colors disabled:opacity-50"
+              className="text-xs tracking-wide text-secondary hover:text-primary transition-colors disabled:opacity-50"
             >
-              {submitting ? 'Adding...' : 'Add Entry'}
+              {submitting ? 'Adding...' : 'Add entry'}
             </button>
           </form>
         )}
 
-        {/* Category breakdown - bar visualization */}
+        {/* Category breakdown */}
         {categoryTotals.length > 0 && (
           <div className="space-y-3">
-            <h2 className="text-[10px] uppercase tracking-wider text-muted">By Category</h2>
-            <div className="space-y-2">
+            <SectionHeader>By category</SectionHeader>
+            <div className="space-y-3">
               {categoryTotals.map(([category, total]) => {
                 const percentage = (total / totalSpent) * 100
                 return (
-                  <div key={category} className="space-y-1">
+                  <div key={category} className="space-y-1.5">
                     <div className="flex justify-between items-baseline">
                       <span className="text-xs text-secondary">{category}</span>
                       <span className="text-xs text-muted tabular-nums">{formatCurrency(total)}</span>
                     </div>
-                    <div className="h-1 bg-white/[0.03] rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-white/[0.03] rounded-full overflow-hidden">
                       <div 
                         className="h-full bg-white/20 rounded-full transition-all"
                         style={{ width: `${percentage}%` }}
@@ -312,11 +350,11 @@ export default function SpendingPage() {
           </div>
         )}
 
-        {/* Entries list - minimal */}
+        {/* Entries list */}
         <div className="space-y-4">
-          <h2 className="text-[10px] uppercase tracking-wider text-muted">Entries</h2>
+          <SectionHeader>Entries</SectionHeader>
           {spendEntries.length === 0 ? (
-            <p className="text-center py-12 text-muted text-sm">No entries yet</p>
+            <EmptyState title="No entries yet" />
           ) : (
             <div className="space-y-1">
               {spendEntries.map((entry) => {
@@ -339,13 +377,13 @@ export default function SpendingPage() {
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
                       <span className="text-[10px] text-muted tabular-nums">{day?.date}</span>
-                      <button
+                      <IconButton
                         onClick={() => handleDelete(entry.id)}
-                        className="p-1 text-muted opacity-0 group-hover:opacity-100 hover:text-destructive transition-all"
-                        aria-label="Delete entry"
+                        variant="destructive"
+                        className="opacity-0 group-hover:opacity-100"
                       >
                         <Trash2 className="w-3 h-3" />
-                      </button>
+                      </IconButton>
                     </div>
                   </div>
                 )

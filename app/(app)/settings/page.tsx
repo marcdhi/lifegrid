@@ -4,6 +4,10 @@ import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { User } from "@/lib/types"
 import { Download, Check } from "lucide-react"
+import { PageHeader } from "@/components/ui/page-header"
+import { SectionHeader } from "@/components/ui/section-header"
+import { TextField } from "@/components/ui/text-field"
+import { Card } from "@/components/ui/card"
 
 export default function SettingsPage() {
   const [user, setUser] = useState<User | null>(null)
@@ -65,22 +69,20 @@ export default function SettingsPage() {
 
     try {
       // Fetch all user data
-      const [daysRes, logsRes, spendRes, foodRes, mediaRes, travelRes] = await Promise.all([
+      const [daysRes, logsRes, spendRes, foodRes, workoutRes] = await Promise.all([
         supabase.from('days').select('*').eq('user_id', user.id),
         supabase.from('hour_logs').select('*').eq('user_id', user.id),
         supabase.from('spend_entries').select('*').eq('user_id', user.id),
-        supabase.from('food_logs').select('*').eq('user_id', user.id),
-        supabase.from('media_logs').select('*').eq('user_id', user.id),
-        supabase.from('travel').select('*').eq('user_id', user.id),
+        supabase.from('food_entries').select('*').eq('user_id', user.id),
+        supabase.from('workout_completions').select('*').eq('user_id', user.id),
       ])
 
       const data = {
         days: daysRes.data || [],
         hour_logs: logsRes.data || [],
         spend_entries: spendRes.data || [],
-        food_logs: foodRes.data || [],
-        media_logs: mediaRes.data || [],
-        travel: travelRes.data || [],
+        food_entries: foodRes.data || [],
+        workout_completions: workoutRes.data || [],
         exported_at: new Date().toISOString(),
       }
 
@@ -94,10 +96,10 @@ export default function SettingsPage() {
         URL.revokeObjectURL(url)
       } else {
         // CSV export for hour logs
-        const csvRows = ['Date,Hour,Category ID,Note']
+        const csvRows = ['Date,Hour,Duration Minutes,Category ID,Note']
         logsRes.data?.forEach(log => {
           const day = daysRes.data?.find(d => d.id === log.day_id)
-          csvRows.push(`${day?.date || ''},${log.hour},${log.category_id},"${log.note || ''}"`)
+          csvRows.push(`${day?.date || ''},${log.hour},${log.duration_minutes || 60},${log.category_id},"${log.note || ''}"`)
         })
         
         const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' })
@@ -126,78 +128,92 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen p-6 md:p-10">
-      <div className="max-w-lg mx-auto space-y-10">
+      <div className="max-w-2xl mx-auto space-y-8">
         {/* Header */}
-        <header className="pb-6 border-b border-white/[0.06]">
-          <h1 className="text-2xl font-light tracking-tight text-primary">Settings</h1>
-        </header>
+        <PageHeader title="Settings" />
 
         {/* Account */}
-        <section className="space-y-3">
-          <h2 className="text-[10px] uppercase tracking-wider text-muted">Account</h2>
-          <div className="space-y-1">
-            <span className="text-[10px] uppercase tracking-wider text-muted">Email</span>
-            <p className="text-sm text-secondary">{user?.email}</p>
-          </div>
+        <section className="space-y-4">
+          <SectionHeader>Account</SectionHeader>
+          <Card>
+            <div className="space-y-1">
+              <span className="text-xs tracking-wide text-muted font-medium">Email</span>
+              <p className="text-sm text-secondary">{user?.email}</p>
+            </div>
+          </Card>
         </section>
 
         {/* Timezone */}
-        <section className="space-y-3">
-          <h2 className="text-[10px] uppercase tracking-wider text-muted">Timezone</h2>
-          <div className="space-y-3">
-            <input
-              value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
-              placeholder="e.g., Asia/Kolkata"
-              className="w-full bg-transparent border-0 border-b border-white/[0.06] focus:border-white/[0.12] py-2 text-sm text-primary outline-none transition-colors placeholder:text-muted"
-            />
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="text-[11px] uppercase tracking-wider text-secondary hover:text-primary transition-colors disabled:opacity-50"
-              >
-                {saving ? 'Saving...' : 'Save'}
-              </button>
-              {message === 'Saved' && (
-                <span className="flex items-center gap-1 text-[11px] text-muted">
-                  <Check className="w-3 h-3" /> {message}
-                </span>
-              )}
+        <section className="space-y-4">
+          <SectionHeader>Timezone</SectionHeader>
+          <Card>
+            <div className="space-y-4">
+              <TextField
+                value={timezone}
+                onChange={(e) => setTimezone(e.target.value)}
+                placeholder="e.g., Asia/Kolkata"
+              />
+              
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="px-4 py-2 text-xs tracking-wide text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-lg transition-all disabled:opacity-50"
+                >
+                  {saving ? 'Saving...' : 'Save timezone'}
+                </button>
+                {message === 'Saved' && (
+                  <span className="flex items-center gap-1.5 text-xs text-secondary">
+                    <Check className="w-3.5 h-3.5" /> {message}
+                  </span>
+                )}
+              </div>
+
+              <p className="text-xs text-muted">
+                All timestamps are stored in UTC. Changing timezone only affects display.
+              </p>
             </div>
-            <p className="text-[10px] text-muted">
-              All timestamps are stored in UTC. Changing timezone only affects display.
-            </p>
-          </div>
+          </Card>
         </section>
 
         {/* Export */}
-        <section className="space-y-3">
-          <h2 className="text-[10px] uppercase tracking-wider text-muted">Export Data</h2>
-          <p className="text-xs text-muted">
-            Download all your Lifegrid data. You own your data completely.
-          </p>
-          <div className="flex gap-4">
-            <button
-              onClick={() => handleExportData('json')}
-              className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-secondary hover:text-primary transition-colors"
-            >
-              <Download className="w-3 h-3" />
-              JSON
-            </button>
-            <button
-              onClick={() => handleExportData('csv')}
-              className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-secondary hover:text-primary transition-colors"
-            >
-              <Download className="w-3 h-3" />
-              CSV (Hours)
-            </button>
-          </div>
+        <section className="space-y-4">
+          <SectionHeader>Export data</SectionHeader>
+          <Card>
+            <div className="space-y-4">
+              <p className="text-xs text-muted">
+                Download all your Lifegrid data. You own your data completely.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleExportData('json')}
+                  className="flex items-center gap-2 px-4 py-2 text-xs tracking-wide text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-lg transition-all"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  JSON
+                </button>
+                <button
+                  onClick={() => handleExportData('csv')}
+                  className="flex items-center gap-2 px-4 py-2 text-xs tracking-wide text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-lg transition-all"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  CSV
+                </button>
+              </div>
+            </div>
+          </Card>
         </section>
+
+        {/* Philosophy */}
+        <div className="pt-6 border-t border-white/[0.06]">
+          <p className="text-xs text-muted italic text-center">
+            Your data lives with you. Export it anytime, delete your account whenever you want.
+          </p>
+        </div>
 
         {/* Message toast */}
         {message && message !== 'Saved' && (
-          <div className="fixed bottom-6 right-6 px-4 py-2 bg-[#0A0A0A] border border-white/[0.06] rounded-sm animate-fade">
+          <div className="fixed bottom-6 right-6 px-4 py-3 bg-popover border border-white/[0.06] rounded-xl animate-fade shadow-lg">
             <p className="text-xs text-secondary">{message}</p>
           </div>
         )}
