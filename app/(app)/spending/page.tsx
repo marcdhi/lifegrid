@@ -3,9 +3,17 @@
 import { useEffect, useState, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { Day, SpendEntry } from "@/lib/types"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Trash2 } from "lucide-react"
+import { Trash2, Plus, X } from "lucide-react"
+
+// Format currency with Indian locale
+function formatCurrency(amount: number, currency: string = 'INR'): string {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount)
+}
 
 export default function SpendingPage() {
   const [days, setDays] = useState<Day[]>([])
@@ -84,6 +92,8 @@ export default function SpendingPage() {
           if (!spendError && spendData) {
             setSpendEntries(spendData)
           }
+        } else {
+          setSpendEntries([])
         }
       }
 
@@ -127,7 +137,7 @@ export default function SpendingPage() {
             user_id: userId,
             day_id: dayData.id,
             amount: parseFloat(formAmount),
-            currency: 'USD',
+            currency: 'INR',
             category: formCategory,
             description: formDescription || null,
           })
@@ -175,142 +185,168 @@ export default function SpendingPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Loading spending...</p>
+        <p className="text-muted">Loading spending...</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-5xl mx-auto space-y-8">
+    <div className="min-h-screen p-6 md:p-10">
+      <div className="max-w-3xl mx-auto space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-semibold tracking-tight">Spending</h1>
-          <Button onClick={() => setShowForm(!showForm)}>
-            {showForm ? 'Cancel' : 'Add Entry'}
-          </Button>
-        </div>
+        <header className="flex items-end justify-between pb-6 border-b border-white/[0.06]">
+          <div>
+            <span className="text-4xl font-light tracking-tighter text-primary tabular-nums">
+              {formatCurrency(totalSpent)}
+            </span>
+            <p className="text-xs text-muted mt-1 uppercase tracking-wider">
+              {timeRange === 'week' ? 'Last 7 days' : timeRange === 'month' ? 'Last 30 days' : 'This year'}
+            </p>
+          </div>
+          
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="p-2 text-muted hover:text-secondary transition-colors"
+            aria-label={showForm ? 'Cancel' : 'Add entry'}
+          >
+            {showForm ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+          </button>
+        </header>
 
-        {/* Time range selector */}
-        <div className="flex gap-2">
+        {/* Time range selector - minimal */}
+        <nav className="flex gap-4">
           {(['week', 'month', 'year'] as const).map((range) => (
             <button
               key={range}
               onClick={() => setTimeRange(range)}
-              className={`px-4 py-2 text-sm rounded-md transition-colors ${
+              className={`text-[11px] uppercase tracking-wider transition-colors ${
                 timeRange === range
-                  ? 'bg-accent text-foreground'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                  ? 'text-primary'
+                  : 'text-muted hover:text-secondary'
               }`}
             >
-              {range === 'week' ? 'Last 7 days' : range === 'month' ? 'Last 30 days' : 'This year'}
+              {range === 'week' ? '7 days' : range === 'month' ? '30 days' : 'Year'}
             </button>
           ))}
-        </div>
+        </nav>
 
-        {/* New entry form */}
+        {/* New entry form - inline, minimal */}
         {showForm && (
-          <form onSubmit={handleSubmit} className="p-6 bg-card border border-border rounded-md space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4 pb-6 border-b border-white/[0.06] animate-fade">
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm text-muted-foreground mb-2 block">Date</label>
-                <Input
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase tracking-wider text-muted">Date</label>
+                <input
                   type="date"
                   value={formDate}
                   onChange={(e) => setFormDate(e.target.value)}
                   required
+                  className="w-full bg-transparent border-0 border-b border-white/[0.06] focus:border-white/[0.12] py-2 text-sm text-primary outline-none transition-colors"
                 />
               </div>
-              <div>
-                <label className="text-sm text-muted-foreground mb-2 block">Amount</label>
-                <Input
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase tracking-wider text-muted">Amount (₹)</label>
+                <input
                   type="number"
-                  step="0.01"
+                  step="1"
                   value={formAmount}
                   onChange={(e) => setFormAmount(e.target.value)}
-                  placeholder="0.00"
+                  placeholder="0"
                   required
+                  className="w-full bg-transparent border-0 border-b border-white/[0.06] focus:border-white/[0.12] py-2 text-sm text-primary outline-none transition-colors placeholder:text-muted"
                 />
               </div>
             </div>
-            <div>
-              <label className="text-sm text-muted-foreground mb-2 block">Category</label>
-              <Input
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase tracking-wider text-muted">Category</label>
+              <input
                 value={formCategory}
                 onChange={(e) => setFormCategory(e.target.value)}
                 placeholder="Food, Transport, etc."
                 required
+                className="w-full bg-transparent border-0 border-b border-white/[0.06] focus:border-white/[0.12] py-2 text-sm text-primary outline-none transition-colors placeholder:text-muted"
               />
             </div>
-            <div>
-              <label className="text-sm text-muted-foreground mb-2 block">Description (optional)</label>
-              <Input
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase tracking-wider text-muted">Description</label>
+              <input
                 value={formDescription}
                 onChange={(e) => setFormDescription(e.target.value)}
-                placeholder="What was this for?"
+                placeholder="Optional"
+                className="w-full bg-transparent border-0 border-b border-white/[0.06] focus:border-white/[0.12] py-2 text-sm text-primary outline-none transition-colors placeholder:text-muted"
               />
             </div>
-            <Button type="submit" disabled={submitting} className="w-full">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="text-[11px] uppercase tracking-wider text-secondary hover:text-primary transition-colors disabled:opacity-50"
+            >
               {submitting ? 'Adding...' : 'Add Entry'}
-            </Button>
+            </button>
           </form>
         )}
 
-        {/* Summary */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="p-6 bg-card border border-border rounded-md">
-            <p className="text-sm text-muted-foreground mb-1">Total Spent</p>
-            <p className="text-3xl font-semibold">${totalSpent.toFixed(2)}</p>
-          </div>
-          <div className="p-6 bg-card border border-border rounded-md">
-            <p className="text-sm text-muted-foreground mb-1">Entries</p>
-            <p className="text-3xl font-semibold">{spendEntries.length}</p>
-          </div>
-        </div>
-
-        {/* Category breakdown */}
+        {/* Category breakdown - bar visualization */}
         {categoryTotals.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold">By Category</h2>
+          <div className="space-y-3">
+            <h2 className="text-[10px] uppercase tracking-wider text-muted">By Category</h2>
             <div className="space-y-2">
-              {categoryTotals.map(([category, total]) => (
-                <div key={category} className="flex items-center justify-between p-3 bg-card border border-border rounded-md">
-                  <span>{category}</span>
-                  <span className="font-medium">${total.toFixed(2)}</span>
-                </div>
-              ))}
+              {categoryTotals.map(([category, total]) => {
+                const percentage = (total / totalSpent) * 100
+                return (
+                  <div key={category} className="space-y-1">
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-xs text-secondary">{category}</span>
+                      <span className="text-xs text-muted tabular-nums">{formatCurrency(total)}</span>
+                    </div>
+                    <div className="h-1 bg-white/[0.03] rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-white/20 rounded-full transition-all"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}
 
-        {/* Entries list */}
+        {/* Entries list - minimal */}
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">All Entries</h2>
+          <h2 className="text-[10px] uppercase tracking-wider text-muted">Entries</h2>
           {spendEntries.length === 0 ? (
-            <p className="text-center py-12 text-muted-foreground">No entries yet</p>
+            <p className="text-center py-12 text-muted text-sm">No entries yet</p>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1">
               {spendEntries.map((entry) => {
                 const day = days.find(d => d.id === entry.day_id)
                 return (
-                  <div key={entry.id} className="flex items-center justify-between p-4 bg-card border border-border rounded-md">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <span className="font-medium">${entry.amount.toFixed(2)}</span>
-                        <span className="text-sm text-muted-foreground">{entry.category}</span>
+                  <div 
+                    key={entry.id} 
+                    className="flex items-center justify-between py-3 border-b border-white/[0.03] group"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-3">
+                        <span className="text-sm text-primary tabular-nums">
+                          {formatCurrency(entry.amount)}
+                        </span>
+                        <span className="text-xs text-muted truncate">{entry.category}</span>
                       </div>
                       {entry.description && (
-                        <p className="text-sm text-muted-foreground mt-1">{entry.description}</p>
+                        <p className="text-xs text-muted mt-0.5 truncate">{entry.description}</p>
                       )}
-                      <p className="text-xs text-muted-foreground mt-1">{day?.date}</p>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(entry.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <span className="text-[10px] text-muted tabular-nums">{day?.date}</span>
+                      <button
+                        onClick={() => handleDelete(entry.id)}
+                        className="p-1 text-muted opacity-0 group-hover:opacity-100 hover:text-destructive transition-all"
+                        aria-label="Delete entry"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
                 )
               })}
@@ -321,4 +357,3 @@ export default function SpendingPage() {
     </div>
   )
 }
-

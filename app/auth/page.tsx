@@ -3,8 +3,6 @@
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 
 type AuthMode = "login" | "signup"
 
@@ -63,33 +61,34 @@ export default function AuthPage() {
         
         router.push("/today")
       }
-    } catch (err: any) {
-      setError(err.message || "An error occurred")
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "An error occurred"
+      setError(message)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm space-y-8">
-        <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+    <div className="min-h-screen flex items-center justify-center bg-black px-4">
+      <div className="w-full max-w-xs space-y-10">
+        {/* Header - minimal */}
+        <div className="space-y-3 text-center">
+          <h1 className="text-xl font-light tracking-tight text-primary">
             Lifegrid
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted">
             Track your life, one hour at a time
           </p>
         </div>
 
-        <div className="flex gap-1 p-1 bg-muted rounded-md">
+        {/* Mode toggle - minimal */}
+        <div className="flex justify-center gap-6">
           <button
             type="button"
             onClick={() => setMode("login")}
-            className={`flex-1 py-2 px-4 rounded text-sm font-medium transition-colors ${
-              mode === "login"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+            className={`text-[11px] uppercase tracking-wider transition-colors ${
+              mode === "login" ? "text-primary" : "text-muted hover:text-secondary"
             }`}
           >
             Log in
@@ -97,22 +96,21 @@ export default function AuthPage() {
           <button
             type="button"
             onClick={() => setMode("signup")}
-            className={`flex-1 py-2 px-4 rounded text-sm font-medium transition-colors ${
-              mode === "signup"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+            className={`text-[11px] uppercase tracking-wider transition-colors ${
+              mode === "signup" ? "text-primary" : "text-muted hover:text-secondary"
             }`}
           >
             Sign up
           </button>
         </div>
 
-        <form onSubmit={handleAuth} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium text-foreground">
+        {/* Form - inline, minimal */}
+        <form onSubmit={handleAuth} className="space-y-6">
+          <div className="space-y-1">
+            <label htmlFor="email" className="text-[10px] uppercase tracking-wider text-muted">
               Email
             </label>
-            <Input
+            <input
               id="email"
               type="email"
               value={email}
@@ -121,14 +119,15 @@ export default function AuthPage() {
               required
               disabled={loading}
               autoComplete="email"
+              className="w-full bg-transparent border-0 border-b border-white/[0.06] focus:border-white/[0.12] py-2 text-sm text-primary outline-none transition-colors placeholder:text-muted"
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium text-foreground">
+          <div className="space-y-1">
+            <label htmlFor="password" className="text-[10px] uppercase tracking-wider text-muted">
               Password
             </label>
-            <Input
+            <input
               id="password"
               type="password"
               value={password}
@@ -138,21 +137,23 @@ export default function AuthPage() {
               disabled={loading}
               autoComplete={mode === "signup" ? "new-password" : "current-password"}
               minLength={6}
+              className="w-full bg-transparent border-0 border-b border-white/[0.06] focus:border-white/[0.12] py-2 text-sm text-primary outline-none transition-colors placeholder:text-muted"
             />
           </div>
 
           {error && (
-            <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20">
-              <p className="text-sm text-destructive">{error}</p>
-            </div>
+            <p className="text-xs text-[#8B3A3A]">{error}</p>
           )}
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "..." : mode === "login" ? "Log in" : "Sign up"}
-          </Button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2 text-[11px] uppercase tracking-wider text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-sm transition-colors disabled:opacity-50"
+          >
+            {loading ? "..." : mode === "login" ? "Log in" : "Create account"}
+          </button>
         </form>
       </div>
     </div>
   )
 }
-

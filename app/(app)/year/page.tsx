@@ -6,11 +6,35 @@ import { useRouter } from "next/navigation"
 import type { Day, HourLog, Category } from "@/lib/types"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
-interface DayCell {
-  date: string
-  logs: HourLog[]
-  dayData?: Day
+// Dusty, desaturated category colors (Apple-like)
+const categoryColorMap: Record<string, string> = {
+  'Sleep': '#1E1F2E',
+  'Work': '#5C2A2A',
+  'Hobbies / Projects': '#8B5A2B',
+  'Freelance': '#5E4A6B',
+  'Exercise': '#2B4A42',
+  'Friends': '#3A5A6B',
+  'Relaxation & Leisure': '#3D444A',
+  'Dating / Partner': '#6B4A52',
+  'Family': '#5A4A3A',
+  'Productive / Chores': '#4A5030',
+  'Travel': '#2E3D4A',
+  'Misc / Getting Ready': '#2A2A2A',
 }
+
+function getCategoryColor(category?: Category): string {
+  if (!category) return 'transparent'
+  return categoryColorMap[category.name] || category.color
+}
+
+interface DayData {
+  date: string
+  dayNumber: number
+  logs: HourLog[]
+  dayRecord?: Day
+}
+
+const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 
 export default function YearPage() {
   const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear())
@@ -91,50 +115,42 @@ export default function YearPage() {
     fetchYearData()
   }, [supabase, userId, currentYear])
 
-  // Generate all days of the year
-  const yearDays = useMemo(() => {
-    const result: DayCell[] = []
-    const date = new Date(currentYear, 0, 1)
-
-    while (date.getFullYear() === currentYear) {
-      const dateString = date.toISOString().split('T')[0]
-      const dayData = days.find(d => d.date === dateString)
-      const logs = dayData ? hourLogs.filter(l => l.day_id === dayData.id) : []
-
+  // Generate year data organized by month
+  const yearData = useMemo(() => {
+    const result: { month: number; monthName: string; days: DayData[] }[] = []
+    
+    for (let month = 0; month < 12; month++) {
+      const daysInMonth = new Date(currentYear, month + 1, 0).getDate()
+      const monthDays: DayData[] = []
+      
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${currentYear}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+        const dayRecord = days.find(d => d.date === dateStr)
+        const logs = dayRecord ? hourLogs.filter(l => l.day_id === dayRecord.id) : []
+        
+        monthDays.push({
+          date: dateStr,
+          dayNumber: day,
+          logs,
+          dayRecord,
+        })
+      }
+      
       result.push({
-        date: dateString,
-        logs,
-        dayData,
+        month,
+        monthName: MONTHS[month],
+        days: monthDays,
       })
-
-      date.setDate(date.getDate() + 1)
     }
-
+    
     return result
   }, [currentYear, days, hourLogs])
 
-  // Calculate dominant color for a day based on hour logs
-  const getDayColor = (dayCell: DayCell): string => {
-    if (dayCell.logs.length === 0) return 'transparent'
-
-    // Count hours per category
-    const categoryCounts = new Map<string, number>()
-    dayCell.logs.forEach(log => {
-      categoryCounts.set(log.category_id, (categoryCounts.get(log.category_id) || 0) + 1)
-    })
-
-    // Find dominant category
-    let dominantCategoryId = ''
-    let maxCount = 0
-    categoryCounts.forEach((count, categoryId) => {
-      if (count > maxCount) {
-        maxCount = count
-        dominantCategoryId = categoryId
-      }
-    })
-
-    const category = categories.find(c => c.id === dominantCategoryId)
-    return category?.color || '#4B4B4B'
+  // Get category for a specific hour on a specific day
+  const getHourCategory = (logs: HourLog[], hour: number): Category | undefined => {
+    const log = logs.find(l => l.hour === hour)
+    if (!log) return undefined
+    return categories.find(c => c.id === log.category_id)
   }
 
   // Navigate to specific day
@@ -142,112 +158,111 @@ export default function YearPage() {
     router.push(`/today?date=${date}`)
   }
 
-  // Group days by month
-  const monthGroups = useMemo(() => {
-    const groups: { month: string; days: DayCell[] }[] = []
-    
-    for (let month = 0; month < 12; month++) {
-      const monthStart = new Date(currentYear, month, 1)
-      const monthName = monthStart.toLocaleDateString('en-US', { month: 'long' })
-      const monthDays = yearDays.filter(d => {
-        const date = new Date(d.date)
-        return date.getMonth() === month
-      })
-      
-      groups.push({ month: monthName, days: monthDays })
-    }
-    
-    return groups
-  }, [yearDays, currentYear])
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Loading year...</p>
+        <p className="text-muted">Loading year...</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen p-6 md:p-10">
+      <div className="max-w-[1400px] mx-auto space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-semibold tracking-tight">{currentYear}</h1>
+        <header className="flex items-end justify-between pb-6 border-b border-white/[0.06]">
+          <div className="flex items-baseline gap-4">
+            <span className="text-5xl font-light tracking-tighter text-primary tabular-nums">
+              {currentYear}
+            </span>
+            <span className="text-xs uppercase tracking-[0.2em] text-muted">
+              {days.length} days tracked
+            </span>
+          </div>
           
-          <div className="flex items-center gap-2">
+          <nav className="flex items-center gap-1">
             <button
               onClick={() => setCurrentYear(currentYear - 1)}
-              className="p-2 hover:bg-accent rounded-md transition-colors"
+              className="p-2 text-muted hover:text-secondary transition-colors"
               aria-label="Previous year"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => setCurrentYear(new Date().getFullYear())}
-              className="px-4 py-2 text-sm hover:bg-accent rounded-md transition-colors"
+              className="px-3 py-1 text-[11px] uppercase tracking-wider text-muted hover:text-secondary transition-colors"
             >
               This Year
             </button>
             <button
               onClick={() => setCurrentYear(currentYear + 1)}
-              className="p-2 hover:bg-accent rounded-md transition-colors"
+              className="p-2 text-muted hover:text-secondary transition-colors"
               aria-label="Next year"
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-4 h-4" />
             </button>
-          </div>
-        </div>
+          </nav>
+        </header>
 
-        {/* Year grid - monthly layout */}
-        <div className="space-y-6">
-          {monthGroups.map(({ month, days: monthDays }) => (
-            <div key={month} className="space-y-3">
-              <h2 className="text-sm font-medium text-muted-foreground">{month}</h2>
-              <div className="grid grid-cols-[repeat(31,1fr)] gap-1">
-                {monthDays.map((dayCell) => {
-                  const dayNumber = new Date(dayCell.date).getDate()
-                  const color = getDayColor(dayCell)
-                  const hasLogs = dayCell.logs.length > 0
-                  const logPercentage = (dayCell.logs.length / 24) * 100
-
-                  return (
-                    <div
-                      key={dayCell.date}
-                      onClick={() => handleDayClick(dayCell.date)}
-                      className="aspect-square rounded-sm border border-border transition-all hover:scale-110 hover:z-10 cursor-pointer hover:ring-2 hover:ring-foreground/20"
-                      style={{
-                        backgroundColor: color,
-                        opacity: hasLogs ? 0.4 + (logPercentage / 100) * 0.6 : 1,
-                      }}
-                      title={`${dayCell.date} - ${dayCell.logs.length} hours logged - Click to view`}
-                    >
-                      {!hasLogs && (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <span className="text-[0.5rem] text-muted-foreground">
-                            {dayNumber}
-                          </span>
-                        </div>
-                      )}
+        {/* Year barcode - the compressed memory object */}
+        <div className="space-y-0.5">
+          {yearData.map(({ month, monthName, days: monthDays }) => (
+            <div key={month} className="flex items-start gap-3">
+              {/* Month label */}
+              <div className="w-8 flex-shrink-0 pt-0.5">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-muted">
+                  {monthName}
+                </span>
+              </div>
+              
+              {/* Days */}
+              <div className="flex-1 space-y-px">
+                {monthDays.map((dayData) => (
+                  <div
+                    key={dayData.date}
+                    className="flex items-center gap-1 group cursor-pointer"
+                    onClick={() => handleDayClick(dayData.date)}
+                  >
+                    {/* Day number */}
+                    <span className="w-5 text-right text-[9px] font-mono text-muted group-hover:text-secondary transition-colors tabular-nums">
+                      {String(dayData.dayNumber).padStart(2, '0')}
+                    </span>
+                    
+                    {/* 24 hour tiles - the barcode */}
+                    <div className="flex-1 flex gap-px">
+                      {Array.from({ length: 24 }, (_, hour) => {
+                        const category = getHourCategory(dayData.logs, hour)
+                        const color = getCategoryColor(category)
+                        
+                        return (
+                          <div
+                            key={hour}
+                            className="year-tile flex-1 h-[6px] rounded-[1px]"
+                            style={{
+                              backgroundColor: category ? color : '#111',
+                            }}
+                            title={`${dayData.date} ${hour}:00 - ${category?.name || 'Empty'}`}
+                          />
+                        )
+                      })}
                     </div>
-                  )
-                })}
+                  </div>
+                ))}
               </div>
             </div>
           ))}
         </div>
 
-        {/* Legend */}
-        <div className="pt-8 border-t border-border space-y-4">
-          <h3 className="text-sm font-medium text-muted-foreground">Legend</h3>
-          <div className="grid grid-cols-4 gap-3">
+        {/* Legend - minimal, horizontal */}
+        <div className="pt-6 border-t border-white/[0.06]">
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
             {categories.map((category) => (
-              <div key={category.id} className="flex items-center gap-2">
+              <div key={category.id} className="flex items-center gap-1.5">
                 <div
-                  className="w-4 h-4 rounded"
-                  style={{ backgroundColor: category.color }}
+                  className="w-2 h-2 rounded-[1px]"
+                  style={{ backgroundColor: getCategoryColor(category) }}
                 />
-                <span className="text-sm">{category.name}</span>
+                <span className="text-[10px] text-muted">{category.name}</span>
               </div>
             ))}
           </div>
@@ -256,4 +271,3 @@ export default function YearPage() {
     </div>
   )
 }
-

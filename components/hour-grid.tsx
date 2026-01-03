@@ -3,13 +3,33 @@
 import { useState, useRef, useCallback } from "react"
 import type { Category, HourCellData } from "@/lib/types"
 import { formatHour } from "@/lib/utils"
-import { cn } from "@/lib/utils"
 
 interface HourGridProps {
   hours: HourCellData[]
   categories: Category[]
   onHourUpdate: (hour: number, categoryId: string) => void
   onHourClear: (hour: number) => void
+}
+
+// Dusty, desaturated category colors (Apple-like)
+const categoryColorMap: Record<string, string> = {
+  'Sleep': '#1E1F2E',
+  'Work': '#5C2A2A',
+  'Hobbies / Projects': '#8B5A2B',
+  'Freelance': '#5E4A6B',
+  'Exercise': '#2B4A42',
+  'Friends': '#3A5A6B',
+  'Relaxation & Leisure': '#3D444A',
+  'Dating / Partner': '#6B4A52',
+  'Family': '#5A4A3A',
+  'Productive / Chores': '#4A5030',
+  'Travel': '#2E3D4A',
+  'Misc / Getting Ready': '#2A2A2A',
+}
+
+function getCategoryColor(category?: Category): string {
+  if (!category) return 'transparent'
+  return categoryColorMap[category.name] || category.color
 }
 
 export function HourGrid({ hours, categories, onHourUpdate, onHourClear }: HourGridProps) {
@@ -73,68 +93,68 @@ export function HourGrid({ hours, categories, onHourUpdate, onHourClear }: HourG
 
   return (
     <div className="relative">
-      {/* Active category indicator */}
+      {/* Active category indicator - minimal */}
       {selectedCategory && (
-        <div className="mb-4 flex items-center gap-3 p-3 bg-card rounded-md border border-border">
+        <div className="mb-4 flex items-center gap-3 py-2 border-b border-white/[0.06]">
           <div
-            className="w-6 h-6 rounded"
+            className="w-3 h-3 rounded-sm"
             style={{
-              backgroundColor: categories.find(c => c.id === selectedCategory)?.color || '#4B4B4B'
+              backgroundColor: getCategoryColor(categories.find(c => c.id === selectedCategory))
             }}
           />
-          <span className="text-sm font-medium">
+          <span className="text-xs text-secondary uppercase tracking-wider">
             {categories.find(c => c.id === selectedCategory)?.name || 'Unknown'}
           </span>
           <button
             onClick={() => setSelectedCategory(null)}
-            className="ml-auto text-xs text-muted-foreground hover:text-foreground"
+            className="ml-auto text-[10px] text-muted hover:text-secondary uppercase tracking-wider transition-colors"
           >
-            Clear selection
+            Clear
           </button>
         </div>
       )}
 
-      {/* Hour grid */}
+      {/* Hour grid - 8 columns, compact, pixel-like */}
       <div
         ref={gridRef}
-        className="grid grid-cols-6 gap-2 select-none"
+        className="grid grid-cols-8 gap-px bg-white/[0.03] select-none"
         onContextMenu={(e) => e.preventDefault()}
       >
         {hours.map((hourData) => {
           const category = hourData.category
+          const bgColor = getCategoryColor(category)
           
           return (
             <div
               key={hourData.hour}
-              className={cn(
-                "hour-cell relative aspect-square rounded-md cursor-pointer transition-all",
-                category ? "hour-cell-filled" : "hour-cell-empty"
-              )}
+              className="hour-cell relative aspect-[1.2] cursor-pointer group"
               style={{
-                backgroundColor: category?.color || 'transparent',
-                borderWidth: category ? '0' : '1px',
+                backgroundColor: category ? bgColor : '#0A0A0A',
               }}
               onMouseDown={(e) => handleMouseDown(hourData.hour, e)}
               onMouseEnter={() => handleMouseEnter(hourData.hour)}
               onMouseUp={handleMouseUp}
               title={`${formatHour(hourData.hour)}${category ? ` - ${category.name}` : ''}`}
             >
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span
-                  className={cn(
-                    "text-xs font-medium",
-                    category ? "text-white mix-blend-difference" : "text-muted-foreground"
-                  )}
-                >
-                  {formatHour(hourData.hour)}
-                </span>
-              </div>
+              {/* Hour label - top left, tiny, muted */}
+              <span
+                className={`absolute top-1 left-1.5 text-[9px] font-mono transition-opacity ${
+                  category 
+                    ? 'text-white/40 group-hover:text-white/60' 
+                    : 'text-muted group-hover:text-secondary'
+                }`}
+              >
+                {formatHour(hourData.hour)}
+              </span>
+              
+              {/* Hover state - subtle brightness */}
+              <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors" />
             </div>
           )
         })}
       </div>
 
-      {/* Category picker popover */}
+      {/* Category picker popover - minimal */}
       {showCategoryPicker && pickerPosition && (
         <>
           <div
@@ -145,24 +165,26 @@ export function HourGrid({ hours, categories, onHourUpdate, onHourClear }: HourG
             }}
           />
           <div
-            className="fixed z-50 bg-popover border border-border rounded-md shadow-lg p-2 w-64 max-h-96 overflow-y-auto"
+            className="fixed z-50 bg-[#0A0A0A] border border-white/[0.06] rounded-sm p-1.5 w-56 max-h-80 overflow-y-auto animate-fade"
             style={{
-              left: `${pickerPosition.x}px`,
-              top: `${pickerPosition.y}px`,
+              left: `${Math.min(pickerPosition.x, window.innerWidth - 240)}px`,
+              top: `${Math.min(pickerPosition.y, window.innerHeight - 340)}px`,
             }}
           >
-            <div className="space-y-1">
+            <div className="space-y-px">
               {categories.map((category) => (
                 <button
                   key={category.id}
                   onClick={() => handleCategorySelect(category.id)}
-                  className="w-full flex items-center gap-3 p-2 rounded hover:bg-accent transition-colors text-left"
+                  className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-sm hover:bg-white/[0.04] transition-colors text-left group"
                 >
                   <div
-                    className="w-5 h-5 rounded flex-shrink-0"
-                    style={{ backgroundColor: category.color }}
+                    className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
+                    style={{ backgroundColor: getCategoryColor(category) }}
                   />
-                  <span className="text-sm">{category.name}</span>
+                  <span className="text-xs text-secondary group-hover:text-primary transition-colors">
+                    {category.name}
+                  </span>
                 </button>
               ))}
             </div>
@@ -170,26 +192,28 @@ export function HourGrid({ hours, categories, onHourUpdate, onHourClear }: HourG
         </>
       )}
 
-      {/* Category palette */}
-      <div className="mt-6 space-y-3">
-        <h3 className="text-sm font-medium text-muted-foreground">Categories</h3>
-        <div className="grid grid-cols-2 gap-2">
+      {/* Category palette - horizontal, compact */}
+      <div className="mt-6 pt-4 border-t border-white/[0.06]">
+        <div className="flex flex-wrap gap-1">
           {categories.map((category) => (
             <button
               key={category.id}
               onClick={() => setSelectedCategory(category.id)}
-              className={cn(
-                "flex items-center gap-3 p-3 rounded-md border transition-colors text-left",
+              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-sm transition-all text-left ${
                 selectedCategory === category.id
-                  ? "border-foreground/40 bg-accent"
-                  : "border-border hover:border-foreground/20 hover:bg-accent/50"
-              )}
+                  ? 'bg-white/[0.08] ring-1 ring-white/10'
+                  : 'hover:bg-white/[0.04]'
+              }`}
             >
               <div
-                className="w-4 h-4 rounded flex-shrink-0"
-                style={{ backgroundColor: category.color }}
+                className="w-2 h-2 rounded-sm flex-shrink-0"
+                style={{ backgroundColor: getCategoryColor(category) }}
               />
-              <span className="text-sm">{category.name}</span>
+              <span className={`text-[11px] ${
+                selectedCategory === category.id ? 'text-primary' : 'text-secondary'
+              }`}>
+                {category.name}
+              </span>
             </button>
           ))}
         </div>
@@ -197,4 +221,3 @@ export function HourGrid({ hours, categories, onHourUpdate, onHourClear }: HourG
     </div>
   )
 }
-

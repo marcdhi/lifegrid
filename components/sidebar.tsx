@@ -7,12 +7,13 @@ import {
   Calendar,
   Grid3x3,
   BarChart3,
-  DollarSign,
+  IndianRupee,
   BookOpen,
   Settings,
   ChevronLeft,
   ChevronRight,
-  LogOut
+  LogOut,
+  Heart
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
@@ -27,7 +28,8 @@ const navItems: NavItem[] = [
   { label: "Today", href: "/today", icon: Calendar },
   { label: "Year", href: "/year", icon: Grid3x3 },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
-  { label: "Spending", href: "/spending", icon: DollarSign },
+  { label: "Fitness", href: "/fitness", icon: Heart },
+  { label: "Spending", href: "/spending", icon: IndianRupee },
   { label: "Reflection", href: "/reflection", icon: BookOpen },
   { label: "Settings", href: "/settings", icon: Settings },
 ]
@@ -59,33 +61,33 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`fixed left-0 top-0 h-screen bg-sidebar border-r border-sidebar-border flex flex-col transition-all duration-200 z-50 ${
-        collapsed ? "w-16" : "w-64"
+      className={`fixed left-0 top-0 h-screen bg-black border-r border-white/[0.06] flex flex-col transition-all duration-200 z-50 ${
+        collapsed ? "w-14" : "w-56"
       }`}
     >
       {/* Header */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
+      <div className="h-14 flex items-center justify-between px-3 border-b border-white/[0.06]">
         {!collapsed && (
-          <h1 className="text-lg font-semibold text-sidebar-foreground tracking-tight">
+          <span className="text-sm font-medium text-primary tracking-tight">
             Lifegrid
-          </h1>
+          </span>
         )}
         <button
           onClick={toggleCollapse}
-          className="p-2 hover:bg-sidebar-accent rounded-md text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors"
+          className="p-1.5 text-muted hover:text-secondary transition-colors"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? (
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-3.5 h-3.5" />
           ) : (
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-3.5 h-3.5" />
           )}
         </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-6">
-        <ul className="space-y-1 px-3">
+      <nav className="flex-1 py-4">
+        <ul className="space-y-0.5 px-2">
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
@@ -94,16 +96,16 @@ export function Sidebar() {
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+                  className={`flex items-center gap-2.5 px-2.5 py-2 rounded-sm transition-colors ${
                     isActive
-                      ? "bg-sidebar-accent text-sidebar-foreground"
-                      : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+                      ? "bg-white/[0.06] text-primary"
+                      : "text-muted hover:text-secondary hover:bg-white/[0.03]"
                   }`}
                   title={collapsed ? item.label : undefined}
                 >
-                  <Icon className="w-5 h-5 flex-shrink-0" />
+                  <Icon className="w-4 h-4 flex-shrink-0" />
                   {!collapsed && (
-                    <span className="text-sm font-medium">{item.label}</span>
+                    <span className="text-xs">{item.label}</span>
                   )}
                 </Link>
               </li>
@@ -113,16 +115,16 @@ export function Sidebar() {
       </nav>
 
       {/* Footer - Sign out */}
-      <div className="p-3 border-t border-sidebar-border">
+      <div className="p-2 border-t border-white/[0.06]">
         <button
           onClick={handleSignOut}
           disabled={signingOut}
-          className="flex items-center gap-3 px-3 py-2 w-full rounded-md text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2.5 px-2.5 py-2 w-full rounded-sm text-muted hover:text-secondary hover:bg-white/[0.03] transition-colors disabled:opacity-50"
           title={collapsed ? "Sign out" : undefined}
         >
-          <LogOut className="w-5 h-5 flex-shrink-0" />
+          <LogOut className="w-4 h-4 flex-shrink-0" />
           {!collapsed && (
-            <span className="text-sm font-medium">
+            <span className="text-xs">
               {signingOut ? "Signing out..." : "Sign out"}
             </span>
           )}
@@ -131,4 +133,3 @@ export function Sidebar() {
     </aside>
   )
 }
-

@@ -1,11 +1,12 @@
 "use client"
 
-import { useEffect, useState, Suspense } from "react"
+import { useEffect, useState, Suspense, useRef, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { getTodayString, getDateLabel, getAllHours } from "@/lib/utils"
 import type { Category, Day, HourLog, HourCellData } from "@/lib/types"
 import { HourGrid } from "@/components/hour-grid"
+import { FitnessSummary } from "@/components/fitness-summary"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
 function TodayContent() {
@@ -17,6 +18,12 @@ function TodayContent() {
   const [hourLogs, setHourLogs] = useState<HourLog[]>([])
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
+  
+  // Local state for notes to avoid controlled input race conditions
+  const [localHighlights, setLocalHighlights] = useState('')
+  const [localNotes, setLocalNotes] = useState('')
+  const highlightsSaveTimeout = useRef<NodeJS.Timeout | null>(null)
+  const notesSaveTimeout = useRef<NodeJS.Timeout | null>(null)
 
   const supabase = createClient()
 
@@ -86,6 +93,9 @@ function TodayContent() {
 
       if (existingDay) {
         setDay(existingDay)
+        // Sync local state with fetched data
+        setLocalHighlights(existingDay.highlights || '')
+        setLocalNotes(existingDay.notes || '')
 
         // Fetch hour logs for this day
         const { data: logs, error: logsError } = await supabase
@@ -103,6 +113,50 @@ function TodayContent() {
 
     fetchDayData()
   }, [supabase, userId, currentDate])
+  
+  // Debounced save for highlights
+  const saveHighlights = useCallback(async (value: string) => {
+    if (!day) return
+    await supabase
+      .from('days')
+      .update({ highlights: value })
+      .eq('id', day.id)
+  }, [supabase, day])
+  
+  // Debounced save for notes
+  const saveNotes = useCallback(async (value: string) => {
+    if (!day) return
+    await supabase
+      .from('days')
+      .update({ notes: value })
+      .eq('id', day.id)
+  }, [supabase, day])
+  
+  const handleHighlightsChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value
+    setLocalHighlights(value)
+    
+    // Debounce the save
+    if (highlightsSaveTimeout.current) {
+      clearTimeout(highlightsSaveTimeout.current)
+    }
+    highlightsSaveTimeout.current = setTimeout(() => {
+      saveHighlights(value)
+    }, 500)
+  }
+  
+  const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value
+    setLocalNotes(value)
+    
+    // Debounce the save
+    if (notesSaveTimeout.current) {
+      clearTimeout(notesSaveTimeout.current)
+    }
+    notesSaveTimeout.current = setTimeout(() => {
+      saveNotes(value)
+    }, 500)
+  }
 
   const handleHourUpdate = async (hour: number, categoryId: string) => {
     if (!day || !userId) return
@@ -187,41 +241,57 @@ function TodayContent() {
     )
   }
 
+  // Format date for display
+  const formatDateDisplay = (dateStr: string) => {
+    const date = new Date(dateStr + 'T00:00:00')
+    const day = date.getDate()
+    const month = date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'long' })
+    return { day, month, weekday }
+  }
+  
+  const { day: dayNum, month, weekday } = formatDateDisplay(currentDate)
+
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-5xl mx-auto space-y-8">
-        {/* Header with date navigation */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight">
-              {getDateLabel(currentDate)}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">{currentDate}</p>
+    <div className="min-h-screen p-6 md:p-10">
+      <div className="max-w-4xl mx-auto space-y-8">
+        {/* Header - typography-led, date dominates emotionally */}
+        <header className="flex items-end justify-between pb-6 border-b border-white/[0.06]">
+          <div className="flex items-baseline gap-4">
+            {/* Large date number - anchor */}
+            <span className="text-6xl font-light tracking-tighter text-primary tabular-nums">
+              {dayNum}
+            </span>
+            <div className="flex flex-col">
+              <span className="text-xs uppercase tracking-[0.2em] text-muted">{month}</span>
+              <span className="text-sm text-secondary">{weekday}</span>
+            </div>
           </div>
           
-          <div className="flex items-center gap-2">
+          {/* Navigation - minimal */}
+          <nav className="flex items-center gap-1">
             <button
               onClick={() => navigateDay(-1)}
-              className="p-2 hover:bg-accent rounded-md transition-colors"
+              className="p-2 text-muted hover:text-secondary transition-colors"
               aria-label="Previous day"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => setCurrentDate(getTodayString())}
-              className="px-4 py-2 text-sm hover:bg-accent rounded-md transition-colors"
+              className="px-3 py-1 text-[11px] uppercase tracking-wider text-muted hover:text-secondary transition-colors"
             >
               Today
             </button>
             <button
               onClick={() => navigateDay(1)}
-              className="p-2 hover:bg-accent rounded-md transition-colors"
+              className="p-2 text-muted hover:text-secondary transition-colors"
               aria-label="Next day"
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-4 h-4" />
             </button>
-          </div>
-        </div>
+          </nav>
+        </header>
 
         {/* Hour grid */}
         <HourGrid
@@ -231,56 +301,38 @@ function TodayContent() {
           onHourClear={handleHourClear}
         />
 
-        {/* Day notes (optional section) */}
-        <div className="space-y-4 pt-8 border-t border-border">
-          <h2 className="text-xl font-semibold">Day Notes</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm text-muted-foreground mb-2 block">
-                Highlights
-              </label>
-              <textarea
-                value={day?.highlights || ''}
-                onChange={async (e) => {
-                  if (!day) return
-                  const { error } = await supabase
-                    .from('days')
-                    .update({ highlights: e.target.value })
-                    .eq('id', day.id)
-                  
-                  if (!error) {
-                    setDay({ ...day, highlights: e.target.value })
-                  }
-                }}
-                placeholder="What stood out today?"
-                className="w-full p-3 bg-background text-foreground border border-border rounded-md resize-none focus:ring-2 focus:ring-ring focus:outline-none placeholder:text-muted-foreground"
-                rows={3}
-              />
-            </div>
-            <div>
-              <label className="text-sm text-muted-foreground mb-2 block">
-                Notes
-              </label>
-              <textarea
-                value={day?.notes || ''}
-                onChange={async (e) => {
-                  if (!day) return
-                  const { error } = await supabase
-                    .from('days')
-                    .update({ notes: e.target.value })
-                    .eq('id', day.id)
-                  
-                  if (!error) {
-                    setDay({ ...day, notes: e.target.value })
-                  }
-                }}
-                placeholder="Any other thoughts..."
-                className="w-full p-3 bg-background text-foreground border border-border rounded-md resize-none focus:ring-2 focus:ring-ring focus:outline-none placeholder:text-muted-foreground"
-                rows={3}
-              />
-            </div>
+        {/* Day notes - inline, minimal design */}
+        <div className="space-y-6 pt-8 border-t border-white/[0.06]">
+          <div className="space-y-1">
+            <label className="text-[11px] uppercase tracking-wider text-secondary">
+              Highlights
+            </label>
+            <textarea
+              value={localHighlights}
+              onChange={handleHighlightsChange}
+              placeholder="What stood out today?"
+              className="w-full bg-transparent text-primary border-0 border-b border-transparent focus:border-white/[0.06] resize-none focus:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:rounded-lg placeholder:text-muted text-sm py-2 transition-colors"
+              rows={2}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] uppercase tracking-wider text-secondary">
+              Notes
+            </label>
+            <textarea
+              value={localNotes}
+              onChange={handleNotesChange}
+              placeholder="Any other thoughts..."
+              className="w-full bg-transparent text-primary border-0 border-b border-transparent focus:border-white/[0.06] resize-none focus:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:rounded-lg placeholder:text-muted text-sm py-2 transition-colors"
+              rows={2}
+            />
           </div>
         </div>
+
+        {/* Fitness Summary */}
+        {userId && (
+          <FitnessSummary date={currentDate} userId={userId} />
+        )}
       </div>
     </div>
   )
