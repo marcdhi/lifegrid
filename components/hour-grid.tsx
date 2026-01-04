@@ -11,25 +11,10 @@ interface HourGridProps {
   onHourClear: (hour: number) => void
 }
 
-// Dusty, desaturated category colors (Apple-like)
-const categoryColorMap: Record<string, string> = {
-  'Sleep': '#1E1F2E',
-  'Work': '#5C2A2A',
-  'Hobbies / Projects': '#8B5A2B',
-  'Freelance': '#5E4A6B',
-  'Exercise': '#2B4A42',
-  'Friends': '#3A5A6B',
-  'Relaxation & Leisure': '#3D444A',
-  'Dating / Partner': '#6B4A52',
-  'Family': '#5A4A3A',
-  'Productive / Chores': '#4A5030',
-  'Travel': '#2E3D4A',
-  'Misc / Getting Ready': '#2A2A2A',
-}
-
+// Helper to get category color - uses only database color
 function getCategoryColor(category?: Category): string {
   if (!category) return 'transparent'
-  return categoryColorMap[category.name] || category.color
+  return category.color // Use color directly from database
 }
 
 export function HourGrid({ hours, categories, onHourUpdate, onHourClear }: HourGridProps) {

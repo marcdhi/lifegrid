@@ -2,10 +2,12 @@
 
 import { useEffect, useState, Suspense, useRef, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
+import { LayoutGrid, CheckSquare } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
-import { getTodayString } from "@/lib/utils"
-import type { Category, Day, HourLog } from "@/lib/types"
+import { getTodayString, cn, filterCategoriesForUser } from "@/lib/utils"
+import type { Category, Day, HourLog, Task } from "@/lib/types"
 import { HourGrid } from "@/components/hour-grid-timeline"
+import { TaskList } from "@/components/task-list"
 import { FitnessSummary } from "@/components/fitness-summary"
 import { DateHeader } from "@/components/ui/date-header"
 import { TextareaField } from "@/components/ui/textarea-field"
@@ -17,6 +19,21 @@ function TodayContent() {
   const [day, setDay] = useState<Day | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [hourLogs, setHourLogs] = useState<HourLog[]>([])
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [viewMode, setViewMode] = useState<'grid' | 'tasks'>('grid')
+
+  useEffect(() => {
+    const savedMode = localStorage.getItem('lifegrid_view_mode')
+    if (savedMode === 'grid' || savedMode === 'tasks') {
+      setViewMode(savedMode)
+    }
+  }, [])
+
+  const handleViewModeChange = (mode: 'grid' | 'tasks') => {
+    setViewMode(mode)
+    localStorage.setItem('lifegrid_view_mode', mode)
+  }
+
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
@@ -57,11 +74,13 @@ function TodayContent() {
         .order('sort_order', { ascending: true })
 
       if (!error && data) {
-        setCategories(data)
+        // Filter out system categories if user has custom ones with same name
+        const filtered = filterCategoriesForUser(data, userId)
+        setCategories(filtered)
       }
     }
     fetchCategories()
-  }, [supabase])
+  }, [supabase, userId])
 
   // Fetch or create day + hour logs
   useEffect(() => {
@@ -116,6 +135,16 @@ function TodayContent() {
             }
           })
           setHourLogs(logsWithCategories as HourLog[])
+        }
+
+        // Fetch tasks
+        const { data: fetchedTasks, error: tasksError } = await supabase
+          .from('tasks')
+          .select('*')
+          .eq('day_id', existingDay.id)
+        
+        if (!tasksError && fetchedTasks) {
+           setTasks(fetchedTasks)
         }
       }
 
@@ -227,6 +256,105 @@ function TodayContent() {
     }
   }
 
+  // Task Handlers
+  const handleTaskCreate = async (title: string, categoryId: string) => {
+    if (!day || !userId) return
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert({
+        user_id: userId,
+        day_id: day.id,
+        title,
+        category_id: categoryId
+      })
+      .select()
+      .single()
+    if (!error && data) {
+      setTasks(prev => [...prev, data])
+    }
+  }
+
+  const handleTaskUpdate = async (taskId: string, updates: Partial<Task>) => {
+    const { error } = await supabase
+      .from('tasks')
+      .update(updates)
+      .eq('id', taskId)
+    if (!error) {
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t))
+    }
+  }
+
+  const handleTaskDelete = async (taskId: string) => {
+    const { error } = await supabase.from('tasks').delete().eq('id', taskId)
+    if (!error) {
+      setTasks(prev => prev.filter(t => t.id !== taskId))
+    }
+  }
+  
+  const handleCategoryCreate = async (name: string, color: string) => {
+    if (!userId) return null
+    // Get max sort order
+    const maxSort = categories.reduce((max, c) => Math.max(max, c.sort_order), 0)
+    
+    const { data, error } = await supabase
+      .from('categories')
+      .insert({
+        user_id: userId,
+        name,
+        color,
+        sort_order: maxSort + 1
+      })
+      .select()
+      .single()
+
+    if (!error && data) {
+      setCategories(prev => [...prev, data])
+      return data
+    }
+    return null
+  }
+
+  const handleTaskComplete = async (taskId: string, hour: number, durationMinutes: number, startOffset: number, notes?: string, keepActive?: boolean) => {
+    if (!day || !userId) return
+    
+    // 1. Update Task - only mark as completed if keepActive is false
+    if (!keepActive) {
+      await handleTaskUpdate(taskId, { completed: true, notes })
+    } else {
+      // Still update notes if provided, but keep task active
+      if (notes !== undefined) {
+        await handleTaskUpdate(taskId, { notes })
+      }
+    }
+    
+    // 2. Create Hour Log
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) return
+
+    // Create a new hour log entry for this task completion
+    // Multiple logs can exist for the same task if keepActive is true
+
+    const { data: newLog, error } = await supabase
+      .from('hour_logs')
+      .insert({
+        user_id: userId,
+        day_id: day.id,
+        hour,
+        category_id: task.category_id,
+        duration_minutes: durationMinutes,
+        start_offset: startOffset,
+        task_id: taskId,
+        note: notes
+      })
+      .select()
+      .single()
+
+    if (!error && newLog) {
+       const category = categories.find(c => c.id === newLog.category_id)
+       setHourLogs(prev => [...prev, { ...newLog, category: category || undefined }])
+    }
+  }
+
   const navigateDay = (offset: number) => {
     const date = new Date(currentDate)
     date.setDate(date.getDate() + offset)
@@ -256,14 +384,52 @@ function TodayContent() {
           userEmail={userEmail}
         />
 
-        {/* Hour grid timeline */}
-        <HourGrid
-          hours={hourLogs}
-          categories={categories}
-          onBlockUpdate={handleBlockUpdate}
-          onBlockCreate={handleBlockCreate}
-          onBlockDelete={handleBlockDelete}
-        />
+        {/* View Toggle */}
+        <div className="flex justify-start">
+          <div className="flex items-center bg-white/5 p-0.5 rounded-lg border border-white/10 w-fit">
+            <button
+              onClick={() => handleViewModeChange('grid')}
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200",
+                viewMode === 'grid' ? "bg-white/10 text-white shadow-sm" : "text-muted hover:text-secondary"
+              )}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              Grid
+            </button>
+            <button
+              onClick={() => handleViewModeChange('tasks')}
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200",
+                viewMode === 'tasks' ? "bg-white/10 text-white shadow-sm" : "text-muted hover:text-secondary"
+              )}
+            >
+              <CheckSquare className="w-3.5 h-3.5" />
+              Tasks
+            </button>
+          </div>
+        </div>
+
+        {/* Content View */}
+        {viewMode === 'grid' ? (
+          <HourGrid
+            hours={hourLogs}
+            categories={categories}
+            onBlockUpdate={handleBlockUpdate}
+            onBlockCreate={handleBlockCreate}
+            onBlockDelete={handleBlockDelete}
+          />
+        ) : (
+          <TaskList 
+            tasks={tasks}
+            categories={categories}
+            onTaskCreate={handleTaskCreate}
+            onTaskUpdate={handleTaskUpdate}
+            onTaskDelete={handleTaskDelete}
+            onTaskComplete={handleTaskComplete}
+            onCategoryCreate={handleCategoryCreate}
+          />
+        )}
 
         {/* Day notes */}
         <div className="space-y-6 pt-6 border-t border-white/[0.06]">

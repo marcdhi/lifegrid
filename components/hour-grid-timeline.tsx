@@ -28,25 +28,9 @@ interface HourGridProps {
   onBlockDelete: (id: string) => void
 }
 
-// EXACT original category colors
-const categoryColorMap: Record<string, string> = {
-  'Sleep': '#1E1F2E',
-  'Work': '#5C2A2A',
-  'Hobbies / Projects': '#8B5A2B',
-  'Freelance': '#5E4A6B',
-  'Exercise': '#2B4A42',
-  'Friends': '#3A5A6B',
-  'Relaxation & Leisure': '#3D444A',
-  'Dating / Partner': '#6B4A52',
-  'Family': '#5A4A3A',
-  'Productive / Chores': '#4A5030',
-  'Travel': '#2E3D4A',
-  'Misc / Getting Ready': '#2A2A2A',
-}
-
 function getCategoryColor(category?: Category): string {
   if (!category) return 'var(--overlay-light)' // Light default color from CSS variables
-  return categoryColorMap[category.name] || category.color
+  return category.color // Use color directly from database
 }
 
 // Convert hour to grid position (row, col)
@@ -140,47 +124,60 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
     if (resizingBlock) return
 
     // Calculate global minute range for this hour
-    const startMin = hour * 60
-    const endMin = (hour + 1) * 60
+    const clickedHourStart = hour * 60
+    const clickedHourEnd = (hour + 1) * 60
     
-    // Find occupied ranges in this hour to detect next available slot
-    const occupied = normalizedBlocks
-      .filter(b => {
-        const bStart = b.hour * 60 + (b.start_offset || 0)
-        const bEnd = bStart + b.duration_minutes
-        return bStart < endMin && bEnd > startMin
-      })
-      .map(b => {
-        const bStart = b.hour * 60 + (b.start_offset || 0)
-        const bEnd = bStart + b.duration_minutes
-        // Clamp to this hour
-        return {
-          start: Math.max(startMin, bStart),
-          end: Math.min(endMin, bEnd)
-        }
-      })
-      .sort((a, b) => a.end - b.end)
+    // Find ALL blocks and find the latest end time before or within the clicked hour
+    // This allows us to start new tasks from the exact end of previous tasks
+    const allBlocks = normalizedBlocks.map(b => {
+      const bStart = b.hour * 60 + (b.start_offset || 0)
+      const bEnd = bStart + b.duration_minutes
+      return { start: bStart, end: bEnd }
+    })
+      .filter(b => b.end <= clickedHourEnd) // Only blocks that end before or at the clicked hour end
+      .sort((a, b) => b.end - a.end) // Sort descending by end time
     
-    // If user clicked explicitly on a block, handleBlockClick would have fired.
-    // Here we are on the cell background.
-    // Try to find if we are clicking in a gap?
-    // For simplicity per user request: "click on the 9AM block... add new task START ONLY FROM 9:25AM+"
-    // This implies using the latest end time as the start.
+    // Find the latest end time - this is where the new task should start
+    let newTaskStartTime = clickedHourStart
     
-    let newStartOffset = 0
-    if (occupied.length > 0) {
-      const lastEnd = occupied[occupied.length - 1].end
-      if (lastEnd > startMin) {
-        newStartOffset = lastEnd - startMin
+    if (allBlocks.length > 0) {
+      const latestBlock = allBlocks[0]
+      // If the latest block ends within the clicked hour, start from that end time
+      // If it ends before the clicked hour, start at the beginning of the clicked hour
+      if (latestBlock.end >= clickedHourStart && latestBlock.end < clickedHourEnd) {
+        newTaskStartTime = latestBlock.end
       }
+      // If latestBlock.end < clickedHourStart, newTaskStartTime stays as clickedHourStart
     }
     
-    if (newStartOffset >= 60) return // Hour is full
+    // Calculate the hour and offset for the new task
+    const newTaskHour = Math.floor(newTaskStartTime / 60)
+    const newTaskOffset = newTaskStartTime % 60
+    
+    // If the calculated hour is different from clicked hour, it means we're starting
+    // from a previous task's end time in an earlier hour. But we should create it
+    // in the hour where it actually starts.
+    // However, if newTaskHour < hour, that means the previous task ended before this hour,
+    // so we should start at the beginning of the clicked hour instead.
+    
+    let finalHour = newTaskHour
+    let finalOffset = newTaskOffset
+    
+    if (newTaskHour < hour) {
+      // Previous task ended before clicked hour, start at beginning of clicked hour
+      finalHour = hour
+      finalOffset = 0
+    }
+    
+    // Check if the target hour is full
+    if (finalOffset >= 60) {
+      return // Hour is completely full
+    }
 
     if (selectedCategory) {
-      onBlockCreate(hour, selectedCategory, 60, newStartOffset)
+      onBlockCreate(finalHour, selectedCategory, 60, finalOffset)
     } else {
-      setPickerPosition({ x: e.clientX, y: e.clientY, hour, startOffset: newStartOffset })
+      setPickerPosition({ x: e.clientX, y: e.clientY, hour: finalHour, startOffset: finalOffset })
       setShowCategoryPicker(true)
     }
   }
@@ -214,7 +211,23 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
     })
   }
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
+  const handleBlockTouchStart = (e: React.TouchEvent, blockId: string, edge: 'right') => {
+    e.stopPropagation()
+    e.preventDefault()
+
+    const block = normalizedBlocks.find(b => b.id === blockId)
+    if (!block || !gridRef.current) return
+
+    const touch = e.touches[0]
+    setResizingBlock({ id: blockId, edge })
+    setDragStartData({
+      mouseX: touch.clientX,
+      originalDuration: block.duration_minutes,
+      hasMoved: false
+    })
+  }
+
+  const handleMove = useCallback((clientX: number) => {
     if (!dragStartData || !gridRef.current || !resizingBlock) return
 
     const rect = gridRef.current.getBoundingClientRect()
@@ -223,7 +236,7 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
     const gaps = columns - 1
     const oneMinutePx = (rect.width - (gaps * 4)) / columns / 60
     
-    const deltaX = e.clientX - dragStartData.mouseX
+    const deltaX = clientX - dragStartData.mouseX
     const deltaMinutes = Math.round(deltaX / oneMinutePx)
 
     // Mark as moved if there's any movement
@@ -261,6 +274,16 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
     }
   }, [resizingBlock, dragStartData, normalizedBlocks, onBlockUpdate, columns])
 
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    handleMove(e.clientX)
+  }, [handleMove])
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (e.touches.length > 0) {
+      handleMove(e.touches[0].clientX)
+    }
+  }, [handleMove])
+
   const handleMouseUp = useCallback(() => {
     // Clear click tracking if mouseup without click event
     setTimeout(() => {
@@ -270,17 +293,21 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
     setDragStartData(null)
   }, [])
 
-  // Attach global listeners
+  // Attach global listeners for both mouse and touch
   useEffect(() => {
     if (resizingBlock) {
       document.addEventListener('mousemove', handleMouseMove)
       document.addEventListener('mouseup', handleMouseUp)
+      document.addEventListener('touchmove', handleTouchMove, { passive: false })
+      document.addEventListener('touchend', handleMouseUp)
       return () => {
         document.removeEventListener('mousemove', handleMouseMove)
         document.removeEventListener('mouseup', handleMouseUp)
+        document.removeEventListener('touchmove', handleTouchMove)
+        document.removeEventListener('touchend', handleMouseUp)
       }
     }
-  }, [resizingBlock, handleMouseMove, handleMouseUp])
+  }, [resizingBlock, handleMouseMove, handleTouchMove, handleMouseUp])
 
   const handleCategorySelect = (categoryId: string) => {
     if (pickerPosition?.blockId) {
@@ -478,12 +505,17 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
                   {/* Right resize handle - ONLY on the last segment */}
                   {segment.isLast && (
                     <div
-                      className="resize-handle absolute right-0 top-0 bottom-0 w-4 cursor-ew-resize z-20 opacity-0 group-hover:opacity-100 hover:bg-white/20 transition-opacity rounded-r-xl"
+                      className={`resize-handle absolute right-0 top-0 bottom-0 z-20 transition-opacity rounded-r-xl ${
+                        isMobile 
+                          ? 'w-6 opacity-60 active:opacity-100' 
+                          : 'w-4 opacity-0 group-hover:opacity-100 hover:bg-white/20'
+                      } cursor-ew-resize`}
                       onMouseDown={(e) => {
                         e.stopPropagation()
                         e.preventDefault()
                         handleBlockMouseDown(e, segment.id, 'right')
                       }}
+                      onTouchStart={(e) => handleBlockTouchStart(e, segment.id, 'right')}
                       onClick={(e) => e.stopPropagation()}
                     />
                   )}

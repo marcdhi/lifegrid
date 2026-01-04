@@ -75,3 +75,30 @@ export function isValidDateString(dateString: string): boolean {
   const date = new Date(dateString)
   return date instanceof Date && !isNaN(date.getTime())
 }
+
+/**
+ * Filter categories to hide system categories if user has custom ones with same name (case-insensitive)
+ */
+export function filterCategoriesForUser<T extends { user_id?: string | null; name: string }>(
+  categories: T[],
+  userId: string | null
+): T[] {
+  if (!userId) return categories
+
+  // Get user's custom category names (case-insensitive)
+  const userCategoryNames = new Set(
+    categories
+      .filter(c => c.user_id === userId)
+      .map(c => c.name.toLowerCase())
+  )
+  
+  // Filter: show system categories only if user doesn't have a custom one with same name
+  return categories.filter(c => {
+    if (c.user_id === userId) return true // Always show user's own categories
+    if (!c.user_id) {
+      // System category - only show if user doesn't have custom one with same name
+      return !userCategoryNames.has(c.name.toLowerCase())
+    }
+    return false // Don't show other users' categories
+  })
+}

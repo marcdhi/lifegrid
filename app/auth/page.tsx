@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import { Card } from "@/components/ui/card"
+import { TextField } from "@/components/ui/text-field"
+import { cn } from "@/lib/utils"
 
 type AuthMode = "login" | "signup"
 
@@ -70,48 +73,58 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-xs space-y-10">
-        {/* Header - minimal */}
-        <div className="space-y-3 text-center">
-          <h1 className="text-xl font-light tracking-tight text-primary">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
+      <div className="w-full max-w-md space-y-8">
+        {/* Header */}
+        <div className="space-y-2 text-center">
+          <h1 className="text-4xl font-light tracking-tight text-primary">
             Lifegrid
           </h1>
-          <p className="text-xs text-muted">
+          <p className="text-sm text-muted">
             Track your life, one hour at a time
           </p>
         </div>
 
-        {/* Mode toggle - minimal */}
-        <div className="flex justify-center gap-6">
-          <button
-            type="button"
-            onClick={() => setMode("login")}
-            className={`text-[11px] uppercase tracking-wider transition-colors ${
-              mode === "login" ? "text-primary" : "text-muted hover:text-secondary"
-            }`}
-          >
-            Log in
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("signup")}
-            className={`text-[11px] uppercase tracking-wider transition-colors ${
-              mode === "signup" ? "text-primary" : "text-muted hover:text-secondary"
-            }`}
-          >
-            Sign up
-          </button>
-        </div>
+        {/* Auth Card */}
+        <Card className="p-6 space-y-6">
+          {/* Mode Toggle */}
+          <div className="flex items-center bg-white/5 p-0.5 rounded-lg border border-white/10 w-fit mx-auto">
+            <button
+              type="button"
+              onClick={() => {
+                setMode("login")
+                setError(null)
+              }}
+              className={cn(
+                "px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200",
+                mode === "login" 
+                  ? "bg-white/10 text-white shadow-sm" 
+                  : "text-muted hover:text-secondary"
+              )}
+            >
+              Log in
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode("signup")
+                setError(null)
+              }}
+              className={cn(
+                "px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200",
+                mode === "signup" 
+                  ? "bg-white/10 text-white shadow-sm" 
+                  : "text-muted hover:text-secondary"
+              )}
+            >
+              Sign up
+            </button>
+          </div>
 
-        {/* Form - inline, minimal */}
-        <form onSubmit={handleAuth} className="space-y-6">
-          <div className="space-y-1">
-            <label htmlFor="email" className="text-[10px] uppercase tracking-wider text-muted">
-              Email
-            </label>
-            <input
-              id="email"
+          {/* Form */}
+          <form onSubmit={handleAuth} className="space-y-5">
+            <TextField
+              label="Email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -119,16 +132,11 @@ export default function AuthPage() {
               required
               disabled={loading}
               autoComplete="email"
-              className="w-full bg-transparent border-0 border-b border-white/[0.06] focus:border-white/[0.12] py-2 text-sm text-primary outline-none transition-colors placeholder:text-muted"
+              error={error && mode === "login" ? error : undefined}
             />
-          </div>
 
-          <div className="space-y-1">
-            <label htmlFor="password" className="text-[10px] uppercase tracking-wider text-muted">
-              Password
-            </label>
-            <input
-              id="password"
+            <TextField
+              label="Password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -137,22 +145,22 @@ export default function AuthPage() {
               disabled={loading}
               autoComplete={mode === "signup" ? "new-password" : "current-password"}
               minLength={6}
-              className="w-full bg-transparent border-0 border-b border-white/[0.06] focus:border-white/[0.12] py-2 text-sm text-primary outline-none transition-colors placeholder:text-muted"
+              error={error && mode === "signup" ? error : undefined}
             />
-          </div>
 
-          {error && (
-            <p className="text-xs text-[#8B3A3A]">{error}</p>
-          )}
+            {error && !error.includes("email") && !error.includes("password") && (
+              <p className="text-xs text-destructive px-1">{error}</p>
+            )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2 text-[11px] uppercase tracking-wider text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-sm transition-colors disabled:opacity-50"
-          >
-            {loading ? "..." : mode === "login" ? "Log in" : "Create account"}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2.5 px-4 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 border border-white/10 hover:border-white/20 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? "Please wait..." : mode === "login" ? "Log in" : "Create account"}
+            </button>
+          </form>
+        </Card>
       </div>
     </div>
   )

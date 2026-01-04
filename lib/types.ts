@@ -9,6 +9,7 @@ export interface User {
 
 export interface Category {
   id: string
+  user_id?: string
   name: string
   color: string
   sort_order: number
@@ -35,7 +36,21 @@ export interface HourLog {
   duration_minutes: number // how long the block lasts (default 60)
   category_id: string
   category?: Category // Joined from categories table
+  task_id?: string // Linked task if any
   note?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface Task {
+  id: string
+  user_id: string
+  day_id: string
+  category_id: string
+  category?: Category
+  title: string
+  completed: boolean
+  notes?: string
   created_at: string
   updated_at: string
 }
@@ -97,6 +112,7 @@ export interface HourCellData {
 
 export interface DayWithLogs extends Day {
   hour_logs?: HourLog[]
+  tasks?: Task[]
   spend_entries?: SpendEntry[]
   food_logs?: FoodLog[]
   media_logs?: MediaLog[]
@@ -159,6 +175,7 @@ export interface WorkoutExercise {
   suggested_reps?: string
   suggested_sets?: number
   sort_order: number
+  image_url?: string
   created_at: string
 }
 

@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import type { User } from "@/lib/types"
-import { Download, Check } from "lucide-react"
+import type { User, Category } from "@/lib/types"
+import { Download, Check, Plus, Edit2, X, Tag } from "lucide-react"
 import { PageHeader } from "@/components/ui/page-header"
 import { SectionHeader } from "@/components/ui/section-header"
 import { TextField } from "@/components/ui/text-field"
 import { Card } from "@/components/ui/card"
+import { cn, filterCategoriesForUser } from "@/lib/utils"
 
 export default function SettingsPage() {
   const [user, setUser] = useState<User | null>(null)
@@ -15,6 +16,15 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  
+  // Categories state
+  const [categories, setCategories] = useState<Category[]>([])
+  const [editingCategory, setEditingCategory] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editColor, setEditColor] = useState('#4ECDC4')
+  const [showCreateCategory, setShowCreateCategory] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [newCategoryColor, setNewCategoryColor] = useState('#4ECDC4')
 
   const supabase = createClient()
 
@@ -41,6 +51,23 @@ export default function SettingsPage() {
     fetchUser()
   }, [supabase])
 
+  // Fetch categories - filter out system categories if user has custom ones with same name
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('sort_order', { ascending: true })
+
+      if (!error && data) {
+        // Filter out system categories if user has custom ones with same name
+        const filtered = filterCategoriesForUser(data, user?.id || null)
+        setCategories(filtered)
+      }
+    }
+    fetchCategories()
+  }, [supabase, user])
+
   const handleSave = async () => {
     if (!user) return
 
@@ -62,6 +89,154 @@ export default function SettingsPage() {
     }
 
     setSaving(false)
+  }
+
+  const handleUpdateCategory = async (categoryId: string) => {
+    if (!editName.trim() || !user) return
+    
+    const category = categories.find(c => c.id === categoryId)
+    if (!category) return
+
+    // If it's a system category (user_id is null), create a user-specific copy
+    if (!category.user_id) {
+      // Check if user already has a custom category with this name (case-insensitive)
+      const existingCustom = categories.find(
+        c => c.user_id === user.id && c.name.toLowerCase() === editName.trim().toLowerCase()
+      )
+      
+      if (existingCustom) {
+        // Update existing custom category instead
+        const { error } = await supabase
+          .from('categories')
+          .update({ color: editColor })
+          .eq('id', existingCustom.id)
+          .eq('user_id', user.id)
+
+        if (!error) {
+          setCategories(prev => prev.map(c => 
+            c.id === existingCustom.id ? { ...c, color: editColor } : c
+          ))
+          setEditingCategory(null)
+          setMessage('Category updated')
+          setTimeout(() => setMessage(null), 2000)
+        } else {
+          console.error('Error updating category:', error)
+          setMessage(`Failed to update category: ${error?.message || 'Unknown error'}`)
+          setTimeout(() => setMessage(null), 3000)
+        }
+      } else {
+        // Create new user-specific copy of the system category
+        const maxSort = categories.reduce((max, c) => Math.max(max, c.sort_order), 0)
+        
+        const { data: newCategory, error: createError } = await supabase
+          .from('categories')
+          .insert({
+            user_id: user.id,
+            name: editName.trim(),
+            color: editColor,
+            sort_order: maxSort + 1
+          })
+          .select()
+          .single()
+
+        if (!createError && newCategory) {
+          // Migrate all existing hour_logs and tasks from system category to new custom category
+          const oldSystemCategoryId = categoryId
+          const newCustomCategoryId = newCategory.id
+
+          // Update hour_logs
+          const { error: logsError } = await supabase
+            .from('hour_logs')
+            .update({ category_id: newCustomCategoryId })
+            .eq('category_id', oldSystemCategoryId)
+            .eq('user_id', user.id)
+
+          // Update tasks
+          const { error: tasksError } = await supabase
+            .from('tasks')
+            .update({ category_id: newCustomCategoryId })
+            .eq('category_id', oldSystemCategoryId)
+            .eq('user_id', user.id)
+
+          if (logsError || tasksError) {
+            console.error('Error migrating data:', logsError || tasksError)
+            setMessage('Category created but some data migration failed')
+            setTimeout(() => setMessage(null), 3000)
+          } else {
+            setCategories(prev => [...prev, newCategory])
+            setEditingCategory(null)
+            setMessage('Custom category created and data migrated')
+            setTimeout(() => setMessage(null), 2000)
+          }
+        } else {
+          console.error('Error creating category:', createError)
+          setMessage(`Failed to create category: ${createError?.message || 'Unknown error'}`)
+          setTimeout(() => setMessage(null), 3000)
+        }
+      }
+    } else {
+      // Update user's own category
+      const { error } = await supabase
+        .from('categories')
+        .update({ name: editName.trim(), color: editColor })
+        .eq('id', categoryId)
+        .eq('user_id', user.id)
+
+      if (!error) {
+        setCategories(prev => prev.map(c => 
+          c.id === categoryId ? { ...c, name: editName.trim(), color: editColor } : c
+        ))
+        setEditingCategory(null)
+        setMessage('Category updated')
+        setTimeout(() => setMessage(null), 2000)
+      } else {
+        console.error('Error updating category:', error)
+        setMessage(`Failed to update category: ${error?.message || 'Unknown error'}`)
+        setTimeout(() => setMessage(null), 3000)
+      }
+    }
+  }
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim() || !user) return
+    
+    // Get max sort order
+    const maxSort = categories.reduce((max, c) => Math.max(max, c.sort_order), 0)
+    
+    const { data, error } = await supabase
+      .from('categories')
+      .insert({
+        user_id: user.id,
+        name: newCategoryName.trim(),
+        color: newCategoryColor,
+        sort_order: maxSort + 1
+      })
+      .select()
+      .single()
+
+    if (!error && data) {
+      setCategories(prev => [...prev, data])
+      setShowCreateCategory(false)
+      setNewCategoryName('')
+      setNewCategoryColor('#4ECDC4')
+      setMessage('Category created')
+      setTimeout(() => setMessage(null), 2000)
+    } else {
+      setMessage('Failed to create category')
+      setTimeout(() => setMessage(null), 2000)
+    }
+  }
+
+  const startEditCategory = (category: Category) => {
+    setEditingCategory(category.id)
+    setEditName(category.name)
+    setEditColor(category.color)
+  }
+
+  const cancelEdit = () => {
+    setEditingCategory(null)
+    setEditName('')
+    setEditColor('#4ECDC4')
   }
 
   const handleExportData = async (format: 'json' | 'csv') => {
@@ -172,6 +347,179 @@ export default function SettingsPage() {
               <p className="text-xs text-muted">
                 All timestamps are stored in UTC. Changing timezone only affects display.
               </p>
+            </div>
+          </Card>
+        </section>
+
+        {/* Categories */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <SectionHeader>Categories</SectionHeader>
+            {!showCreateCategory && (
+              <button
+                onClick={() => setShowCreateCategory(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs tracking-wide text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-lg transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add Category
+              </button>
+            )}
+          </div>
+          
+          <Card>
+            <div className="space-y-3">
+              {/* Create Category Form */}
+              {showCreateCategory && (
+                <div className="p-4 bg-white/[0.02] rounded-xl border border-white/[0.06] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-secondary">New Category</span>
+                    <button
+                      onClick={() => {
+                        setShowCreateCategory(false)
+                        setNewCategoryName('')
+                        setNewCategoryColor('#4ECDC4')
+                      }}
+                      className="p-1 text-muted hover:text-primary transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <TextField
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      placeholder="Category name"
+                      autoFocus
+                    />
+                    
+                    <div className="flex items-center gap-3">
+                      <label className="text-xs text-muted whitespace-nowrap">Color:</label>
+                      <div className="flex flex-wrap gap-2 flex-1">
+                        {['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD', '#D4A5A5', '#9B59B6', '#3498DB', '#E74C3C', '#2ECC71'].map(c => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => setNewCategoryColor(c)}
+                            className={cn(
+                              "w-6 h-6 rounded-full transition-transform hover:scale-110",
+                              newCategoryColor === c && "ring-2 ring-white ring-offset-1 ring-offset-black"
+                            )}
+                            style={{ backgroundColor: c }}
+                          />
+                        ))}
+                        <input 
+                          type="color" 
+                          value={newCategoryColor} 
+                          onChange={(e) => setNewCategoryColor(e.target.value)}
+                          className="w-6 h-6 p-0 border-0 rounded-full overflow-hidden cursor-pointer"
+                          title="Custom color"
+                        />
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={handleCreateCategory}
+                      disabled={!newCategoryName.trim()}
+                      className="w-full px-4 py-2 text-xs tracking-wide text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Create Category
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Categories List */}
+              <div className="space-y-2">
+                {categories.map(category => (
+                  <div
+                    key={category.id}
+                    className="flex items-center gap-3 p-3 rounded-xl border border-white/[0.06] hover:border-white/[0.12] transition-colors group"
+                  >
+                    {editingCategory === category.id ? (
+                      <>
+                        <div 
+                          className="w-4 h-4 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: editColor }}
+                        />
+                        <div className="flex-1 space-y-2">
+                          <TextField
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            className="text-sm"
+                            autoFocus
+                          />
+                          <div className="flex items-center gap-2">
+                            <label className="text-xs text-muted whitespace-nowrap">Color:</label>
+                            <div className="flex flex-wrap gap-1.5 flex-1">
+                              {['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD', '#D4A5A5', '#9B59B6', '#3498DB', '#E74C3C', '#2ECC71'].map(c => (
+                                <button
+                                  key={c}
+                                  type="button"
+                                  onClick={() => setEditColor(c)}
+                                  className={cn(
+                                    "w-5 h-5 rounded-full transition-transform hover:scale-110",
+                                    editColor === c && "ring-2 ring-white ring-offset-1 ring-offset-black"
+                                  )}
+                                  style={{ backgroundColor: c }}
+                                />
+                              ))}
+                              <input 
+                                type="color" 
+                                value={editColor} 
+                                onChange={(e) => setEditColor(e.target.value)}
+                                className="w-5 h-5 p-0 border-0 rounded-full overflow-hidden cursor-pointer"
+                                title="Custom color"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleUpdateCategory(category.id)}
+                            disabled={!editName.trim()}
+                            className="p-1.5 text-primary hover:bg-white/5 rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={cancelEdit}
+                            className="p-1.5 text-muted hover:text-primary hover:bg-white/5 rounded-lg transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div 
+                          className="w-4 h-4 rounded-full flex-shrink-0 shadow-sm"
+                          style={{ backgroundColor: category.color }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-secondary truncate">{category.name}</p>
+                          {category.user_id && (
+                            <p className="text-xs text-muted/50 mt-0.5">Custom</p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => startEditCategory(category)}
+                          className="opacity-0 group-hover:opacity-100 p-1.5 text-muted hover:text-primary hover:bg-white/5 rounded-lg transition-all"
+                          title="Edit category"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ))}
+                
+                {categories.length === 0 && (
+                  <div className="text-center py-8 text-muted text-sm">
+                    No categories yet
+                  </div>
+                )}
+              </div>
             </div>
           </Card>
         </section>

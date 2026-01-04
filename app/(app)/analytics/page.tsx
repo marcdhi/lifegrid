@@ -3,29 +3,13 @@
 import { useEffect, useState, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { Day, HourLog, Category, FoodEntry, WorkoutCompletion, WorkoutExercise } from "@/lib/types"
-import { formatDateString } from "@/lib/utils"
+import { formatDateString, filterCategoriesForUser } from "@/lib/utils"
 import { PageHeader } from "@/components/ui/page-header"
 import { SectionHeader } from "@/components/ui/section-header"
 import { Card } from "@/components/ui/card"
 
-// Dusty, desaturated category colors (keep existing)
-const categoryColorMap: Record<string, string> = {
-  'Sleep': '#1E1F2E',
-  'Work': '#5C2A2A',
-  'Hobbies / Projects': '#8B5A2B',
-  'Freelance': '#5E4A6B',
-  'Exercise': '#2B4A42',
-  'Friends': '#3A5A6B',
-  'Relaxation & Leisure': '#3D444A',
-  'Dating / Partner': '#6B4A52',
-  'Family': '#5A4A3A',
-  'Productive / Chores': '#4A5030',
-  'Travel': '#2E3D4A',
-  'Misc / Getting Ready': '#2A2A2A',
-}
-
 function getCategoryColor(category: Category): string {
-  return categoryColorMap[category.name] || category.color
+  return category.color // Use color directly from database
 }
 
 interface StatCardProps {
@@ -79,11 +63,13 @@ export default function AnalyticsPage() {
         .order('sort_order', { ascending: true })
 
       if (!error && data) {
-        setCategories(data)
+        // Filter out system categories if user has custom ones with same name
+        const filtered = filterCategoriesForUser(data, userId)
+        setCategories(filtered)
       }
     }
     fetchCategories()
-  }, [supabase])
+  }, [supabase, userId])
 
   // Fetch data based on time range
   useEffect(() => {

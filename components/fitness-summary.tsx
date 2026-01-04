@@ -10,7 +10,9 @@ import type {
   WorkoutCompletion,
   WorkoutType
 } from "@/lib/types"
-import { Check, ChevronRight } from "lucide-react"
+import { Check, ChevronRight, X } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { cn } from "@/lib/utils"
 
 interface FitnessSummaryProps {
   date: string
@@ -37,6 +39,7 @@ export function FitnessSummary({ date, userId }: FitnessSummaryProps) {
   const [exercises, setExercises] = useState<WorkoutExercise[]>([])
   const [completions, setCompletions] = useState<WorkoutCompletion[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedExercise, setSelectedExercise] = useState<WorkoutExercise | null>(null)
 
   const supabase = createClient()
 
@@ -109,6 +112,41 @@ export function FitnessSummary({ date, userId }: FitnessSummaryProps) {
     ).length
   }, [exercises, completions])
 
+  // Toggle exercise completion
+  const handleExerciseToggle = async (exerciseId: string) => {
+    if (!userId) return
+
+    const existing = completions.find(c => c.exercise_id === exerciseId)
+    
+    if (existing) {
+      // Delete completion
+      const { error } = await supabase
+        .from('workout_completions')
+        .delete()
+        .eq('id', existing.id)
+
+      if (!error) {
+        setCompletions(prev => prev.filter(c => c.id !== existing.id))
+      }
+    } else {
+      // Add completion
+      const { data, error } = await supabase
+        .from('workout_completions')
+        .insert({
+          user_id: userId,
+          date: date,
+          exercise_id: exerciseId,
+          completed: true,
+        })
+        .select()
+        .single()
+
+      if (!error && data) {
+        setCompletions(prev => [...prev, data])
+      }
+    }
+  }
+
   if (loading) {
     return (
       <div className="py-4">
@@ -159,39 +197,183 @@ export function FitnessSummary({ date, userId }: FitnessSummaryProps) {
 
       {/* Workout Summary */}
       {hasWorkoutPlan && (
-        <div className="space-y-2">
-          <span className="text-[11px] tracking-wide text-secondary font-medium">Workout</span>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] tracking-wide text-secondary font-medium">Workout</span>
+            {workoutPlan.workout_type !== 'rest' && (
+              <span className="text-[10px] text-muted">
+                {completedCount}/{exercises.length} done
+              </span>
+            )}
+          </div>
           
           {workoutPlan.workout_type === 'rest' ? (
             <p className="text-xs text-muted">Rest day</p>
+          ) : exercises.length > 0 ? (
+            <div className="space-y-2">
+              {exercises.map(exercise => {
+                const isCompleted = completions.some(c => c.exercise_id === exercise.id)
+                
+                return (
+                  <div
+                    key={exercise.id}
+                    className={cn(
+                      "group flex items-start gap-3 p-2.5 rounded-lg transition-all duration-200 cursor-pointer",
+                      isCompleted 
+                        ? "opacity-60 bg-white/[0.02]" 
+                        : "hover:bg-white/[0.02]"
+                    )}
+                    onClick={(e) => {
+                      // Don't open modal if clicking checkbox
+                      if ((e.target as HTMLElement).closest('[data-slot="checkbox"]')) {
+                        return
+                      }
+                      setSelectedExercise(exercise)
+                    }}
+                  >
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={isCompleted}
+                        onCheckedChange={() => handleExerciseToggle(exercise.id)}
+                        className={cn(
+                          "rounded-full w-4 h-4 mt-0.5 flex-shrink-0 transition-all duration-300",
+                          isCompleted 
+                            ? "data-[state=checked]:bg-primary data-[state=checked]:border-primary" 
+                            : "border-white/20 bg-white/5 border-dashed hover:border-white/40"
+                        )}
+                      />
+                    </div>
+                    
+                    {/* Image thumbnail */}
+                    {exercise.image_url && (
+                      <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-white/5 border border-white/10">
+                        <img 
+                          src={exercise.image_url} 
+                          alt={exercise.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <h3 className={cn(
+                          "text-xs font-medium leading-tight",
+                          isCompleted ? 'text-muted line-through decoration-muted/50' : 'text-primary'
+                        )}>
+                          {exercise.name}
+                        </h3>
+                        {exercise.suggested_reps && (
+                          <span className="text-[10px] text-muted flex-shrink-0">
+                            {exercise.suggested_sets && exercise.suggested_sets > 1 
+                              ? `${exercise.suggested_sets} × ${exercise.suggested_reps}`
+                              : exercise.suggested_reps
+                            }
+                          </span>
+                        )}
+                      </div>
+                      {exercise.description && (
+                        <p className={cn(
+                          "text-[10px] mt-0.5 leading-relaxed line-clamp-2",
+                          isCompleted ? 'text-muted/50' : 'text-secondary'
+                        )}>
+                          {exercise.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           ) : (
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-secondary">
-                  {WORKOUT_TYPE_LABELS[workoutPlan.workout_type]}
-                </span>
-                <span className="text-[10px] text-muted">
-                  {completedCount}/{exercises.length} done
-                </span>
+            <p className="text-xs text-muted">No exercises planned</p>
+          )}
+        </div>
+      )}
+
+      {/* Exercise Detail Modal */}
+      {selectedExercise && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={() => setSelectedExercise(null)}
+        >
+          <div 
+            className="bg-card w-full max-w-lg rounded-2xl border border-white/10 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Image */}
+            {selectedExercise.image_url && (
+              <div className="w-full h-64 bg-white/5 relative">
+                <img 
+                  src={selectedExercise.image_url} 
+                  alt={selectedExercise.name}
+                  className="w-full h-full object-cover"
+                />
+                <button 
+                  onClick={() => setSelectedExercise(null)}
+                  className="absolute top-4 right-4 p-2 rounded-full bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              
-              {/* Progress dots */}
-              <div className="flex gap-1">
-                {exercises.map(exercise => {
-                  const isCompleted = completions.some(c => c.exercise_id === exercise.id)
-                  return (
-                    <div
-                      key={exercise.id}
-                      className={`w-2 h-2 rounded-full ${
-                        isCompleted ? 'bg-white/20' : 'bg-white/[0.06]'
-                      }`}
-                      title={`${exercise.name}${isCompleted ? ' ✓' : ''}`}
-                    />
-                  )
-                })}
+            )}
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-primary mb-1">
+                    {selectedExercise.name}
+                  </h3>
+                  {selectedExercise.suggested_reps && (
+                    <div className="flex items-center gap-2 text-sm text-secondary">
+                      <span className="font-medium">
+                        {selectedExercise.suggested_sets && selectedExercise.suggested_sets > 1 
+                          ? `${selectedExercise.suggested_sets} sets × ${selectedExercise.suggested_reps}`
+                          : selectedExercise.suggested_reps
+                        }
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {!selectedExercise.image_url && (
+                  <button 
+                    onClick={() => setSelectedExercise(null)}
+                    className="p-1 text-muted hover:text-primary transition-colors flex-shrink-0"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+
+              {selectedExercise.description && (
+                <div className="pt-2 border-t border-white/[0.06]">
+                  <p className="text-sm text-secondary leading-relaxed">
+                    {selectedExercise.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Completion toggle */}
+              <div className="flex items-center gap-3 pt-4 border-t border-white/[0.06]">
+                <Checkbox
+                  checked={completions.some(c => c.exercise_id === selectedExercise.id)}
+                  onCheckedChange={() => {
+                    handleExerciseToggle(selectedExercise.id)
+                  }}
+                  className={cn(
+                    "rounded-full w-5 h-5",
+                    completions.some(c => c.exercise_id === selectedExercise.id)
+                      ? "data-[state=checked]:bg-primary data-[state=checked]:border-primary" 
+                      : "border-white/20 bg-white/5 border-dashed hover:border-white/40"
+                  )}
+                />
+                <label className="text-sm text-secondary cursor-pointer">
+                  Mark as completed
+                </label>
               </div>
             </div>
-          )}
+          </div>
         </div>
       )}
     </div>
