@@ -62,6 +62,7 @@ function getCurrentTime(): string {
 
 export default function FitnessPage() {
   const [userId, setUserId] = useState<string | null>(null)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [currentDate, setCurrentDate] = useState<string>(getTodayString())
   
@@ -109,6 +110,7 @@ export default function FitnessPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         setUserId(user.id)
+        setUserEmail(user.email || null)
       }
     }
     fetchUser()
@@ -556,6 +558,7 @@ export default function FitnessPage() {
           onPrevious={() => navigateDay(-1)}
           onNext={() => navigateDay(1)}
           onToday={() => setCurrentDate(getTodayString())}
+          userEmail={userEmail}
         />
 
         {/* Food Section */}

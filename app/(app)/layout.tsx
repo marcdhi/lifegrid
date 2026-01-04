@@ -38,9 +38,11 @@ export default function AppLayout({
   }, [])
 
   return (
-    <div className="flex min-h-screen bg-black">
+    <div className="flex min-h-screen bg-background">
       <Sidebar />
-      <main className={`flex-1 transition-all duration-200 ${sidebarCollapsed ? 'ml-14' : 'ml-56'}`}>
+      <main className={`flex-1 transition-all duration-200 ${
+        sidebarCollapsed ? 'md:ml-14' : 'md:ml-56'
+      }`}>
         {children}
       </main>
     </div>

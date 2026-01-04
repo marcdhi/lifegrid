@@ -19,6 +19,7 @@ function TodayContent() {
   const [hourLogs, setHourLogs] = useState<HourLog[]>([])
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
   
   // Local state for notes to avoid controlled input race conditions
   const [localHighlights, setLocalHighlights] = useState('')
@@ -41,6 +42,7 @@ function TodayContent() {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         setUserId(user.id)
+        setUserEmail(user.email || null)
       }
     }
     fetchUser()
@@ -243,14 +245,15 @@ function TodayContent() {
   }
 
   return (
-    <div className="min-h-screen p-6 md:p-10">
-      <div className="max-w-5xl mx-auto space-y-8">
+    <div className="min-h-screen p-4 md:p-6 lg:p-10 pb-20 md:pb-6">
+      <div className="max-w-5xl mx-auto space-y-6 md:space-y-8">
         {/* Date Header */}
         <DateHeader
           date={currentDate}
           onPrevious={() => navigateDay(-1)}
           onNext={() => navigateDay(1)}
           onToday={() => setCurrentDate(getTodayString())}
+          userEmail={userEmail}
         />
 
         {/* Hour grid timeline */}

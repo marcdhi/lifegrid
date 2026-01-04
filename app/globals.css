@@ -3,49 +3,52 @@
 
 /* =============================================
    LIFEGRID DESIGN SYSTEM
-   Cursor-like: Calm, precise, intentional
+   Peachy dark theme: Warm, calm, intentional
    ============================================= */
 
 :root {
-  /* Background - near-black, never pure black */
-  --background: #0D0D0D;
-  --foreground: #E8E8E8;
+  /* Background - very dark brown */
+  --background: #1A120B;
+  --foreground: #E5E5CB;
   
-  /* Text hierarchy - soft, muted, high-quality */
-  --primary: #E8E8E8;
-  --secondary: #9B9B9B;
-  --muted: #6B6B6B;
+  /* Text hierarchy - light beige tones */
+  --primary: #E5E5CB;
+  --secondary: #D5CEA3;
+  --muted: #B8B08A;
   
-  /* Surfaces - subtle luminance steps */
-  --card: #151515;
-  --card-foreground: #E8E8E8;
-  --popover: #151515;
-  --popover-foreground: #E8E8E8;
+  /* Surfaces - medium dark brown */
+  --card: #3C2A21;
+  --card-foreground: #E5E5CB;
+  --popover: #3C2A21;
+  --popover-foreground: #E5E5CB;
   
   /* Interactive */
-  --primary-foreground: #0D0D0D;
-  --secondary-bg: #1A1A1A;
-  --secondary-foreground: #E8E8E8;
+  --primary-foreground: #1A120B;
+  --secondary-bg: #3C2A21;
+  --secondary-foreground: #E5E5CB;
   
-  /* Accent - muted, desaturated */
-  --accent: #1A1A1A;
-  --accent-foreground: #E8E8E8;
+  /* Accent - medium dark brown */
+  --accent: #3C2A21;
+  --accent-foreground: #E5E5CB;
   
-  /* Destructive - muted red */
+  /* Destructive - muted warm red */
   --destructive: #C24A4A;
-  --destructive-foreground: #E8E8E8;
+  --destructive-foreground: #E5E5CB;
   
-  /* Borders - minimal contrast */
-  --border: rgba(255, 255, 255, 0.06);
-  --input: #1A1A1A;
-  --ring: rgba(255, 255, 255, 0.12);
+  /* Borders - warm tinted, minimal contrast */
+  --border: rgba(229, 229, 203, 0.1);
+  --input: #3C2A21;
+  --ring: rgba(229, 229, 203, 0.2);
+  
+  /* Overlay colors */
+  --overlay-light: rgba(255, 255, 255, 0.05);
   
   /* Sidebar */
-  --sidebar: #0D0D0D;
-  --sidebar-foreground: #E8E8E8;
-  --sidebar-border: rgba(255, 255, 255, 0.06);
-  --sidebar-accent: #1A1A1A;
-  --sidebar-accent-foreground: #E8E8E8;
+  --sidebar: #1A120B;
+  --sidebar-foreground: #E5E5CB;
+  --sidebar-border: rgba(229, 229, 203, 0.1);
+  --sidebar-accent: #3C2A21;
+  --sidebar-accent-foreground: #E5E5CB;
   
   /* Radius - large, soft corners */
   --radius-sm: 0.5rem;
@@ -119,7 +122,7 @@
   
   /* Selection */
   ::selection {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(229, 229, 203, 0.25);
   }
 }
 
@@ -133,23 +136,16 @@
   @apply scale-[1.02];
 }
 
-/* Custom scrollbar - minimal */
+/* Hide scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  display: none;
+  width: 0;
+  height: 0;
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
+* {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }
 
 /* Utility classes */

@@ -4,6 +4,22 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react"
 import type { Category, HourLog } from "@/lib/types"
 import { formatHour } from "@/lib/utils"
 
+// Hook to detect mobile screen
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  return isMobile
+}
+
 interface HourGridProps {
   hours: HourLog[]
   categories: Category[]
@@ -29,15 +45,15 @@ const categoryColorMap: Record<string, string> = {
 }
 
 function getCategoryColor(category?: Category): string {
-  if (!category) return 'transparent'
+  if (!category) return 'var(--overlay-light)' // Light default color from CSS variables
   return categoryColorMap[category.name] || category.color
 }
 
 // Convert hour to grid position (row, col)
-function hourToGrid(hour: number): { row: number; col: number } {
+function hourToGrid(hour: number, columns: number = 8): { row: number; col: number } {
   return {
-    row: Math.floor(hour / 8),
-    col: hour % 8
+    row: Math.floor(hour / columns),
+    col: hour % columns
   }
 }
 
@@ -63,22 +79,19 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
   
   const gridRef = useRef<HTMLDivElement>(null)
   const blockClickRef = useRef<{ blockId: string; startX: number; startY: number } | null>(null)
+  const isMobile = useIsMobile()
+  const columns = isMobile ? 4 : 8
 
-  // Normalize data BEFORE render - ensure every block has category object
+  // Normalize data BEFORE render - include blocks even without category
   const normalizedBlocks = useMemo(() => {
     return hours
       .map(block => {
         const category = categories.find(c => c.id === block.category_id)
-        if (!category) {
-          // Don't render blocks without category - data not ready yet
-          return null
-        }
         return {
           ...block,
-          category
+          category: category || undefined
         }
       })
-      .filter((block): block is HourLog & { category: Category } => block !== null)
   }, [hours, categories])
 
   // Split blocks into visual segments (handling row wrapping)
@@ -90,11 +103,11 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
       let currentOffset = block.start_offset || 0
 
       while (remainingDuration > 0) {
-        const { row, col } = hourToGrid(currentHour)
+        const { row, col } = hourToGrid(currentHour, columns)
         
         // Calculate minutes available in the REST of the row from this start position
         const minutesInCurrentCell = 60 - currentOffset
-        const minutesInRestOfRow = (7 - col) * 60
+        const minutesInRestOfRow = (columns - 1 - col) * 60
         const maxDurationInRow = minutesInCurrentCell + minutesInRestOfRow
         
         const segmentDuration = Math.min(remainingDuration, maxDurationInRow)
@@ -121,7 +134,7 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
       }
       return segments
     })
-  }, [normalizedBlocks])
+  }, [normalizedBlocks, columns])
 
   const handleCellClick = (hour: number, e: React.MouseEvent) => {
     if (resizingBlock) return
@@ -206,8 +219,9 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
 
     const rect = gridRef.current.getBoundingClientRect()
     // Calculate width of one minute in pixels (approx)
-    // 8 columns, minus gaps. simplified: total width / 8 / 60
-    const oneMinutePx = (rect.width - (7 * 4)) / 8 / 60
+    // columns, minus gaps. simplified: total width / columns / 60
+    const gaps = columns - 1
+    const oneMinutePx = (rect.width - (gaps * 4)) / columns / 60
     
     const deltaX = e.clientX - dragStartData.mouseX
     const deltaMinutes = Math.round(deltaX / oneMinutePx)
@@ -245,7 +259,7 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
         }
       }
     }
-  }, [resizingBlock, dragStartData, normalizedBlocks, onBlockUpdate])
+  }, [resizingBlock, dragStartData, normalizedBlocks, onBlockUpdate, columns])
 
   const handleMouseUp = useCallback(() => {
     // Clear click tracking if mouseup without click event
@@ -303,10 +317,10 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
         </div>
       )}
 
-      {/* Grid container - 8 columns, 3 rows */}
+      {/* Grid container - 4 columns on mobile, 8 columns on desktop */}
       <div
         ref={gridRef}
-        className="grid grid-cols-8 gap-1 select-none relative"
+        className="grid grid-cols-4 md:grid-cols-8 gap-1 select-none relative"
         onContextMenu={(e) => e.preventDefault()}
       >
         {/* Static grid cells - visual only, NO block logic */}
@@ -314,10 +328,7 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
           return (
             <div
               key={`cell-${hour}`}
-              className="hour-cell relative aspect-[1.2] cursor-pointer group rounded-xl overflow-hidden z-0 pointer-events-auto"
-              style={{
-                backgroundColor: '#0D0D0D',
-              }}
+              className="hour-cell relative aspect-[1.2] cursor-pointer group rounded-xl overflow-hidden z-0 pointer-events-auto bg-white/5"
               onClick={(e) => handleCellClick(hour, e)}
               onContextMenu={(e) => {
                 e.preventDefault()
@@ -375,7 +386,11 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
             //    If startOffset=30, duration=60 -> end=90. 1 crossing (at 60).
             //    Gap is 4px.
             
-            const cellWidthPercent = `((100% - 28px) / 8)`
+            // Calculate gaps based on columns
+            const gaps = columns - 1
+            const totalGapPx = gaps * 4
+            
+            const cellWidthPercent = `((100% - ${totalGapPx}px) / ${columns})`
             const minuteWidthPercent = `(${cellWidthPercent} / 60)`
             
             const crossings = Math.floor((startOffset + segment.duration - 0.1) / 60)
@@ -392,9 +407,12 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
             const startOffsetCalc = `(${minuteWidthPercent} * ${startOffset})`
             const leftCalc = `calc(${colOffsetCalc} + ${startOffsetCalc})`
             
-            // Vertical calc: 3 rows with 2 gaps of 4px each
-            // Row height = (100% - 8px) / 3
-            const rowHeightCalc = `((100% - 8px) / 3)`
+            // Vertical calc: rows with gaps
+            // Number of rows = Math.ceil(24 / columns)
+            const rows = Math.ceil(24 / columns)
+            const rowGaps = rows - 1
+            const totalRowGapPx = rowGaps * 4
+            const rowHeightCalc = `((100% - ${totalRowGapPx}px) / ${rows})`
             const topCalc = `calc((${rowHeightCalc} * ${segment.row}) + ${segment.row * 4}px)`
             const heightCalc = `calc(${rowHeightCalc})`
 
@@ -408,7 +426,7 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
                   width: widthCalc,
                   height: heightCalc,
                 }}
-                title={`${formatHour(segment.hour)} - ${segment.category.name} (${segment.duration_minutes}min)`}
+                title={`${formatHour(segment.hour)} - ${segment.category?.name || 'Uncategorized'} (${segment.duration_minutes}min)`}
               >
                 {/* Block content */}
                 <div 
@@ -448,9 +466,11 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
                         </div>
                         
                         {/* Category Name */}
-                        <span className="text-[11px] leading-tight font-semibold text-white/95 truncate w-full mt-0.5">
-                          {segment.category.name}
-                        </span>
+                        {segment.category && (
+                          <span className="text-[11px] leading-tight font-semibold text-white/95 truncate w-full mt-0.5">
+                            {segment.category.name}
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}

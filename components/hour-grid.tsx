@@ -129,7 +129,7 @@ export function HourGrid({ hours, categories, onHourUpdate, onHourClear }: HourG
               key={hourData.hour}
               className="hour-cell relative aspect-[1.2] cursor-pointer group rounded-xl overflow-hidden"
               style={{
-                backgroundColor: category ? bgColor : '#0D0D0D',
+                backgroundColor: category ? bgColor : '#1A120B',
               }}
               onMouseDown={(e) => handleMouseDown(hourData.hour, e)}
               onMouseEnter={() => handleMouseEnter(hourData.hour)}

@@ -250,7 +250,7 @@ export default function YearPage() {
                             key={hour}
                             className="year-tile flex-1 h-[7px] rounded-sm"
                             style={{
-                              backgroundColor: category ? color : '#0D0D0D',
+                              backgroundColor: category ? color : '#1A120B',
                             }}
                             title={`${dayData.date} ${hour}:00 - ${category?.name || 'Empty'}`}
                           />

@@ -70,7 +70,7 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-xs space-y-10">
         {/* Header - minimal */}
         <div className="space-y-3 text-center">
