@@ -303,11 +303,11 @@ export function FitnessSummary({ date, userId }: FitnessSummaryProps) {
           >
             {/* Image */}
             {selectedExercise.image_url && (
-              <div className="w-full h-64 bg-white/5 relative">
+              <div className="w-full bg-white/5 relative flex items-center justify-center p-4">
                 <img 
                   src={selectedExercise.image_url} 
                   alt={selectedExercise.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-auto object-contain"
                 />
                 <button 
                   onClick={() => setSelectedExercise(null)}
@@ -347,7 +347,7 @@ export function FitnessSummary({ date, userId }: FitnessSummaryProps) {
               </div>
 
               {selectedExercise.description && (
-                <div className="pt-2 border-t border-white/[0.06]">
+                <div className="pt-2">
                   <p className="text-sm text-secondary leading-relaxed">
                     {selectedExercise.description}
                   </p>
@@ -355,7 +355,7 @@ export function FitnessSummary({ date, userId }: FitnessSummaryProps) {
               )}
 
               {/* Completion toggle */}
-              <div className="flex items-center gap-3 pt-4 border-t border-white/[0.06]">
+              <div className="flex items-center gap-3 pt-2">
                 <Checkbox
                   checked={completions.some(c => c.exercise_id === selectedExercise.id)}
                   onCheckedChange={() => {
