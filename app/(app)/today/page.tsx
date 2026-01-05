@@ -156,15 +156,22 @@ function TodayContent() {
            
            if (recurringTasks && recurringTasks.length > 0) {
              // Check which recurring tasks are already created for this day
+             // Include both template_task_id matches AND the recurring task itself if it's on this day
              const existingTemplateIds = new Set(
                fetchedTasks
                  .filter(t => t.template_task_id)
                  .map(t => t.template_task_id)
              )
              
+             const existingRecurringTaskIds = new Set(
+               fetchedTasks
+                 .filter(t => t.is_recurring && t.day_id === existingDay.id)
+                 .map(t => t.id)
+             )
+             
              // Create instances for recurring tasks that don't exist yet
              const tasksToCreate = recurringTasks.filter(
-               rt => !existingTemplateIds.has(rt.id)
+               rt => !existingTemplateIds.has(rt.id) && !existingRecurringTaskIds.has(rt.id)
              )
              
              if (tasksToCreate.length > 0) {

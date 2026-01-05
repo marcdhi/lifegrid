@@ -1,5 +1,13 @@
 -- Add recurring tasks support
 -- This allows users to define "default" tasks that auto-populate on future days
+-- 
+-- How it works:
+-- 1. When a user creates a task with is_recurring=true, it becomes a "template"
+-- 2. When the user opens any future day, instances of recurring tasks are auto-created
+-- 3. Each instance has template_task_id pointing to the original recurring task
+-- 4. The original recurring task lives on the day it was created
+-- 5. Deleting the template (CASCADE) deletes all instances
+-- 6. Deleting an instance only deletes that specific day's task
 
 -- Add is_recurring column to tasks table
 ALTER TABLE public.tasks
