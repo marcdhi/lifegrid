@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Plus, X, Clock, Trash2, Tag, Calendar, Check } from "lucide-react"
+import { Plus, X, Clock, Trash2, Tag, Calendar, Check, Repeat } from "lucide-react"
 import type { Task, Category } from "@/lib/types"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn, formatHour } from "@/lib/utils"
@@ -9,7 +9,7 @@ import { cn, formatHour } from "@/lib/utils"
 interface TaskListProps {
   tasks: Task[]
   categories: Category[]
-  onTaskCreate: (title: string, categoryId: string) => void
+  onTaskCreate: (title: string, categoryId: string, isRecurring: boolean) => void
   onTaskUpdate: (taskId: string, updates: Partial<Task>) => void
   onTaskDelete: (taskId: string) => void
   onTaskComplete: (taskId: string, hour: number, durationMinutes: number, startOffset: number, notes?: string, keepActive?: boolean) => void
@@ -33,6 +33,7 @@ export function TaskList({
 }: TaskListProps) {
   const [newTaskTitle, setNewTaskTitle] = useState("")
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [isRecurring, setIsRecurring] = useState(false)
   const [showCategoryPicker, setShowCategoryPicker] = useState(false)
   const [categorySearch, setCategorySearch] = useState("")
   const [customColor, setCustomColor] = useState("#4ECDC4")
@@ -61,8 +62,9 @@ export function TaskList({
   const handleCreateTask = (e: React.FormEvent) => {
     e.preventDefault()
     if (!newTaskTitle.trim() || !selectedCategory) return
-    onTaskCreate(newTaskTitle, selectedCategory)
+    onTaskCreate(newTaskTitle, selectedCategory, isRecurring)
     setNewTaskTitle("")
+    setIsRecurring(false)
     // Keep category selected for rapid entry
   }
 
@@ -274,6 +276,18 @@ export function TaskList({
           />
 
           <button
+            type="button"
+            onClick={() => setIsRecurring(!isRecurring)}
+            className={cn(
+              "flex items-center justify-center w-8 h-8 rounded-full hover:bg-white/10 transition-all",
+              isRecurring ? "text-primary" : "text-muted/50"
+            )}
+            title={isRecurring ? "Recurring task (daily)" : "Make recurring (daily)"}
+          >
+            <Repeat className="w-4 h-4" />
+          </button>
+
+          <button
             type="submit"
             disabled={!newTaskTitle.trim() || !selectedCategory}
             className="p-1.5 rounded-full bg-primary text-primary-foreground opacity-0 scale-90 group-focus-within:opacity-100 group-focus-within:scale-100 disabled:opacity-0 disabled:scale-90 transition-all duration-300"
@@ -324,6 +338,13 @@ export function TaskList({
                   {task.title}
                 </span>
 
+                {task.is_recurring && (
+                  <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-400 text-[10px] font-semibold tracking-wide border border-blue-500/20">
+                    <Repeat className="w-2.5 h-2.5" />
+                    Daily
+                  </span>
+                )}
+
                 {category && (
                     <span 
                       className="px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide text-white/90 shadow-sm opacity-80 group-hover:opacity-100 transition-opacity"
@@ -339,6 +360,19 @@ export function TaskList({
                   </span>
                 )}
               </div>
+
+              {!task.template_task_id && (
+                <button
+                  onClick={() => onTaskUpdate(task.id, { is_recurring: !task.is_recurring })}
+                  className={cn(
+                    "opacity-0 group-hover:opacity-100 p-1.5 transition-all scale-90 hover:scale-100",
+                    task.is_recurring ? "text-blue-400 hover:text-blue-300" : "text-muted/30 hover:text-blue-400"
+                  )}
+                  title={task.is_recurring ? "Remove daily recurrence" : "Make task recur daily"}
+                >
+                  <Repeat className="w-4 h-4" />
+                </button>
+              )}
 
               <button
                 onClick={() => setDeletingTask(task.id)}

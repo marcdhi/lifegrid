@@ -145,6 +145,51 @@ function TodayContent() {
         
         if (!tasksError && fetchedTasks) {
            setTasks(fetchedTasks)
+           
+           // Auto-populate recurring tasks for this day if not already present
+           // Get user's recurring tasks (templates)
+           const { data: recurringTasks } = await supabase
+             .from('tasks')
+             .select('*')
+             .eq('user_id', userId)
+             .eq('is_recurring', true)
+           
+           if (recurringTasks && recurringTasks.length > 0) {
+             // Check which recurring tasks are already created for this day
+             const existingTemplateIds = new Set(
+               fetchedTasks
+                 .filter(t => t.template_task_id)
+                 .map(t => t.template_task_id)
+             )
+             
+             // Create instances for recurring tasks that don't exist yet
+             const tasksToCreate = recurringTasks.filter(
+               rt => !existingTemplateIds.has(rt.id)
+             )
+             
+             if (tasksToCreate.length > 0) {
+               const newTaskInstances = tasksToCreate.map(rt => ({
+                 user_id: userId,
+                 day_id: existingDay.id,
+                 category_id: rt.category_id,
+                 title: rt.title,
+                 completed: false,
+                 is_recurring: false,
+                 template_task_id: rt.id,
+                 notes: rt.notes
+               }))
+               
+               const { data: createdTasks } = await supabase
+                 .from('tasks')
+                 .insert(newTaskInstances)
+                 .select()
+               
+               if (createdTasks) {
+                 // Add newly created tasks to the list
+                 setTasks(prev => [...prev, ...createdTasks])
+               }
+             }
+           }
         }
       }
 
@@ -257,7 +302,7 @@ function TodayContent() {
   }
 
   // Task Handlers
-  const handleTaskCreate = async (title: string, categoryId: string) => {
+  const handleTaskCreate = async (title: string, categoryId: string, isRecurring: boolean = false) => {
     if (!day || !userId) return
     const { data, error } = await supabase
       .from('tasks')
@@ -265,7 +310,8 @@ function TodayContent() {
         user_id: userId,
         day_id: day.id,
         title,
-        category_id: categoryId
+        category_id: categoryId,
+        is_recurring: isRecurring
       })
       .select()
       .single()

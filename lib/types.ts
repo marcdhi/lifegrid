@@ -51,6 +51,8 @@ export interface Task {
   title: string
   completed: boolean
   notes?: string
+  is_recurring: boolean
+  template_task_id?: string
   created_at: string
   updated_at: string
 }
