@@ -13,10 +13,11 @@ A complete life logging application that tracks time, spending, and reflections.
 ## 🏗️ Infrastructure
 
 ### Database Schema ✅
-- **6 SQL migration files** in `/scripts/` (run in order)
+- **15 SQL migration files** in `/scripts/` (run in order)
 - User profiles with timezone
 - 12 default categories (exact colors specified)
 - Days, hour_logs, spend_entries, food_logs, media_logs, travel tables
+- **Tasks table** with recurring task support
 - Full RLS (Row Level Security) on all tables
 - Auto-triggers for timestamps and user creation
 
@@ -69,6 +70,11 @@ A complete life logging application that tracks time, spending, and reflections.
 - Date navigation (prev/next/today)
 - Daily highlights field (auto-save)
 - Daily notes field (auto-save)
+- **Task management** with two views (Grid/Tasks toggle)
+- Task creation with category assignment
+- Task completion with time logging
+- **Recurring/default tasks** that auto-populate daily
+- Visual badges for recurring tasks
 
 **UX:**
 - Empty hours allowed (intentional gaps)
@@ -76,6 +82,9 @@ A complete life logging application that tracks time, spending, and reflections.
 - Hour numbers visible in cells
 - Category colors applied as backgrounds
 - Tooltips with time and category
+- Toggle between hour grid and task list views
+- Recurring tasks show "Daily" badge with Repeat icon
+- One-click toggle to make any task recurring
 
 ### 2. `/year` - Year View ✅
 **Features:**
