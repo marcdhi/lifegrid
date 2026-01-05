@@ -10,6 +10,7 @@
 -- 6. Deleting an instance only deletes that specific day's task
 
 -- Add is_recurring column to tasks table
+-- Default FALSE means existing tasks remain non-recurring
 ALTER TABLE public.tasks
 ADD COLUMN is_recurring BOOLEAN NOT NULL DEFAULT FALSE;
 

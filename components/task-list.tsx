@@ -361,6 +361,7 @@ export function TaskList({
                 )}
               </div>
 
+              {/* Only allow toggling recurring status on templates, not instances */}
               {!task.template_task_id && (
                 <button
                   onClick={() => onTaskUpdate(task.id, { is_recurring: !task.is_recurring })}

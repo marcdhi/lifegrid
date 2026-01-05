@@ -147,7 +147,11 @@ function TodayContent() {
            setTasks(fetchedTasks)
            
            // Auto-populate recurring tasks for this day if not already present
-           // Get user's recurring tasks (templates)
+           // Note: We query all user's recurring tasks on each day navigation.
+           // This is acceptable because:
+           // 1. Users typically have a small number of recurring tasks (<50)
+           // 2. The query is indexed (idx_tasks_user_recurring)
+           // 3. The query is per-user only (RLS enforced)
            const { data: recurringTasks } = await supabase
              .from('tasks')
              .select('*')
@@ -163,9 +167,11 @@ function TodayContent() {
                  .map(t => t.template_task_id)
              )
              
+             // Also check if the recurring task itself exists on this day
+             // (fetchedTasks is already filtered by day_id, so we just check is_recurring)
              const existingRecurringTaskIds = new Set(
                fetchedTasks
-                 .filter(t => t.is_recurring && t.day_id === existingDay.id)
+                 .filter(t => t.is_recurring)
                  .map(t => t.id)
              )
              
