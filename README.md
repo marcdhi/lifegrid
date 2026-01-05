@@ -80,6 +80,8 @@ Open [http://localhost:3000](http://localhost:3000)
 - Right-click or Cmd+click to clear
 - Navigate between days
 - Add daily highlights and notes
+- **Task management** with Grid/Tasks toggle
+- **Recurring tasks** that auto-populate daily
 
 ### Year View (`/year`)
 - Visual grid of the entire year
