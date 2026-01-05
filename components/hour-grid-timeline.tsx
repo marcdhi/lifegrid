@@ -123,55 +123,47 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
   const handleCellClick = (hour: number, e: React.MouseEvent) => {
     if (resizingBlock) return
 
-    // Calculate global minute range for this hour
-    const clickedHourStart = hour * 60
-    const clickedHourEnd = (hour + 1) * 60
+    // Row-based approach: Treat all tasks as time ranges, not grid blocks
+    // Convert all blocks to simple time ranges (start minute, end minute)
+    const timeRanges = normalizedBlocks.map(b => ({
+      start: b.hour * 60 + (b.start_offset || 0),
+      end: b.hour * 60 + (b.start_offset || 0) + b.duration_minutes,
+      id: b.id
+    })).sort((a, b) => a.start - b.start) // Sort by start time
     
-    // Find ALL blocks and find the latest end time before or within the clicked hour
-    // This allows us to start new tasks from the exact end of previous tasks
-    const allBlocks = normalizedBlocks.map(b => {
-      const bStart = b.hour * 60 + (b.start_offset || 0)
-      const bEnd = bStart + b.duration_minutes
-      return { start: bStart, end: bEnd }
-    })
-      .filter(b => b.end <= clickedHourEnd) // Only blocks that end before or at the clicked hour end
-      .sort((a, b) => b.end - a.end) // Sort descending by end time
+    // Find the next available slot starting from the clicked hour
+    const clickedMinute = hour * 60
+    const hourEnd = (hour + 1) * 60
+    const endOfDay = 24 * 60
     
-    // Find the latest end time - this is where the new task should start
-    let newTaskStartTime = clickedHourStart
+    // Start by checking if the beginning of the clicked hour is available
+    let nextAvailableStart = clickedMinute
     
-    if (allBlocks.length > 0) {
-      const latestBlock = allBlocks[0]
-      // If the latest block ends within the clicked hour, start from that end time
-      // If it ends before the clicked hour, start at the beginning of the clicked hour
-      if (latestBlock.end >= clickedHourStart && latestBlock.end < clickedHourEnd) {
-        newTaskStartTime = latestBlock.end
-      }
-      // If latestBlock.end < clickedHourStart, newTaskStartTime stays as clickedHourStart
+    // Check all blocks to see if they overlap with our desired start time
+    // Find the latest end time of any block that overlaps with the clicked hour
+    const blocksInHour = timeRanges.filter(range => 
+      range.end > clickedMinute && range.start < hourEnd
+    )
+    
+    if (blocksInHour.length > 0) {
+      // Find the latest end time among blocks in this hour
+      const latestEnd = Math.max(...blocksInHour.map(r => r.end))
+      // Start the new task right after the latest ending block
+      nextAvailableStart = latestEnd
     }
     
-    // Calculate the hour and offset for the new task
-    const newTaskHour = Math.floor(newTaskStartTime / 60)
-    const newTaskOffset = newTaskStartTime % 60
-    
-    // If the calculated hour is different from clicked hour, it means we're starting
-    // from a previous task's end time in an earlier hour. But we should create it
-    // in the hour where it actually starts.
-    // However, if newTaskHour < hour, that means the previous task ended before this hour,
-    // so we should start at the beginning of the clicked hour instead.
-    
-    let finalHour = newTaskHour
-    let finalOffset = newTaskOffset
-    
-    if (newTaskHour < hour) {
-      // Previous task ended before clicked hour, start at beginning of clicked hour
-      finalHour = hour
-      finalOffset = 0
+    // Ensure we don't go past the end of the day
+    if (nextAvailableStart >= endOfDay) {
+      return // No more slots available today
     }
     
-    // Check if the target hour is full
-    if (finalOffset >= 60) {
-      return // Hour is completely full
+    // Calculate hour and offset for the new task
+    const finalHour = Math.floor(nextAvailableStart / 60)
+    const finalOffset = nextAvailableStart % 60
+    
+    // Ensure we're still within valid range
+    if (finalHour >= 24 || finalOffset >= 60) {
+      return
     }
 
     if (selectedCategory) {
@@ -253,18 +245,32 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
         newDuration = Math.round(newDuration / 5) * 5
         newDuration = Math.max(15, newDuration) // Minimum 15 mins
         
-        // Prevent overlap with next block
-        const nextBlock = normalizedBlocks
-          .filter(b => b.id !== block.id && b.hour >= block.hour)
-          .sort((a, b) => a.hour - b.hour)[0]
+        // Row-based approach: Calculate block's time range
+        const blockStart = block.hour * 60 + (block.start_offset || 0)
+        const blockEnd = blockStart + newDuration
         
-        if (nextBlock) {
-          const minutesUntilNext = (nextBlock.hour * 60) - (block.hour * 60)
-          newDuration = Math.min(newDuration, minutesUntilNext)
+        // Find the next block that would overlap (using time ranges, not grid positions)
+        const otherBlocks = normalizedBlocks
+          .filter(b => b.id !== block.id)
+          .map(b => ({
+            start: b.hour * 60 + (b.start_offset || 0),
+            end: b.hour * 60 + (b.start_offset || 0) + b.duration_minutes,
+            id: b.id
+          }))
+          .filter(b => b.start >= blockStart) // Only blocks that start at or after this block
+          .sort((a, b) => a.start - b.start)
+        
+        // Find the first block that would overlap with the new end time
+        const overlappingBlock = otherBlocks.find(b => b.start < blockEnd)
+        
+        if (overlappingBlock) {
+          // Limit duration to not overlap with the next block
+          const maxDuration = overlappingBlock.start - blockStart
+          newDuration = Math.min(newDuration, maxDuration)
         }
         
         // Prevent overflowing day (24:00)
-        const minutesUntilEndOfDay = (24 * 60) - (block.hour * 60)
+        const minutesUntilEndOfDay = (24 * 60) - blockStart
         newDuration = Math.min(newDuration, minutesUntilEndOfDay)
 
         if (newDuration !== block.duration_minutes && newDuration > 0) {
@@ -475,31 +481,34 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
                 }}
                 onClick={(e) => handleBlockClick(e, segment.id)}
                 >
-                  {/* Block label - only show on first segment */}
+                  {/* Category Name & Start Time - only show on first segment */}
                   {segment.isFirst && (
-                    <div className={`absolute inset-0 p-1.5 flex flex-col ${segment.duration_minutes < 30 ? 'justify-center' : 'justify-start'} pointer-events-none select-none overflow-hidden`}>
-                      <div className="flex flex-col items-start w-full min-w-0">
-                        <div className="flex items-center gap-1 text-[9px] leading-none font-mono text-white/60 w-full truncate">
-                          <span>
-                            {formatTime(segment.hour * 60 + (segment.startOffset || 0))}
-                            {segment.duration_minutes > 45 && ` - ${formatTime(segment.hour * 60 + (segment.startOffset || 0) + segment.duration_minutes)}`}
-                          </span>
-                          {/* Plain text duration for short blocks */}
-                          {segment.duration_minutes < 60 && (
-                            <span className="opacity-80">
-                              • {segment.duration_minutes}m
-                            </span>
-                          )}
-                        </div>
-                        
-                        {/* Category Name */}
-                        {segment.category && (
-                          <span className="text-[11px] leading-tight font-semibold text-white/95 truncate w-full mt-0.5">
-                            {segment.category.name}
-                          </span>
-                        )}
-                      </div>
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none p-2.5">
+                      {/* Category Name - Centered */}
+                      {segment.category && (
+                        <span className={`text-[13px] font-medium text-white leading-tight text-center ${
+                          segment.duration_minutes < 40 ? 'break-words' : 'truncate'
+                        }`}>
+                          {segment.category.name}
+                        </span>
+                      )}
+                      
+                      {/* Start Time - Bottom Left */}
+                      <span className="absolute bottom-2.5 left-2.5 text-[10px] font-mono text-white/70 leading-none tracking-tight">
+                        {formatTime(segment.hour * 60 + (segment.startOffset || 0))}
+                      </span>
                     </div>
+                  )}
+                  
+                  {/* End Time - only show on last segment */}
+                  {segment.isLast && (
+                    <span className={`absolute text-[10px] font-mono text-white/70 leading-none tracking-tight pointer-events-none select-none ${
+                      segment.duration_minutes >= 60 
+                        ? 'bottom-2.5 right-2.5' 
+                        : 'top-2.5 right-2.5'
+                    }`}>
+                      {formatTime(segment.hour * 60 + (segment.start_offset || 0) + segment.duration_minutes)}
+                    </span>
                   )}
 
                   {/* Right resize handle - ONLY on the last segment */}
