@@ -3,6 +3,9 @@
 # dependencies
 /node_modules
 
+# lock files (project uses pnpm)
+package-lock.json
+
 # next.js
 /.next/
 /out/
