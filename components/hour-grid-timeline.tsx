@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react"
 import type { Category, HourLog } from "@/lib/types"
 import { formatHour } from "@/lib/utils"
+import { HourGridMobile } from "./hour-grid-mobile"
 
 // Hook to detect mobile screen
 function useIsMobile() {
@@ -53,8 +54,8 @@ function formatTime(totalMinutes: number) {
 export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBlockDelete }: HourGridProps) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [showCategoryPicker, setShowCategoryPicker] = useState(false)
-  const [pickerPosition, setPickerPosition] = useState<{ x: number; y: number; hour?: number; startOffset?: number; blockId?: string } | null>(null)
-  const [resizingBlock, setResizingBlock] = useState<{ id: string; edge: 'right' } | null>(null)
+  const [pickerPosition, setPickerPosition] = useState<{ x: number; y: number; hour?: number; startOffset?: number; duration?: number; blockId?: string } | null>(null)
+  const [resizingBlock, setResizingBlock] = useState<{ id: string; edge: 'left' | 'right' } | null>(null)
   const [dragStartData, setDragStartData] = useState<{ 
     mouseX: number; 
     originalDuration: number;
@@ -123,53 +124,116 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
   const handleCellClick = (hour: number, e: React.MouseEvent) => {
     if (resizingBlock) return
 
-    // Row-based approach: Treat all tasks as time ranges, not grid blocks
-    // Convert all blocks to simple time ranges (start minute, end minute)
+    // Convert all blocks to time ranges and sort by start time
     const timeRanges = normalizedBlocks.map(b => ({
       start: b.hour * 60 + (b.start_offset || 0),
       end: b.hour * 60 + (b.start_offset || 0) + b.duration_minutes,
-      id: b.id
-    })).sort((a, b) => a.start - b.start) // Sort by start time
+      id: b.id,
+      block: b
+    })).sort((a, b) => a.start - b.start)
     
-    // Find the next available slot starting from the clicked hour
     const clickedMinute = hour * 60
-    const hourEnd = (hour + 1) * 60
+    const clickedHourEnd = (hour + 1) * 60
     const endOfDay = 24 * 60
     
-    // Start by checking if the beginning of the clicked hour is available
-    let nextAvailableStart = clickedMinute
+    // Check if there's already a block in this hour (database constraint: unique_day_hour)
+    const existingBlockInHour = normalizedBlocks.find(b => b.hour === hour)
     
-    // Check all blocks to see if they overlap with our desired start time
-    // Find the latest end time of any block that overlaps with the clicked hour
-    const blocksInHour = timeRanges.filter(range => 
-      range.end > clickedMinute && range.start < hourEnd
-    )
-    
-    if (blocksInHour.length > 0) {
-      // Find the latest end time among blocks in this hour
-      const latestEnd = Math.max(...blocksInHour.map(r => r.end))
-      // Start the new task right after the latest ending block
-      nextAvailableStart = latestEnd
-    }
-    
-    // Ensure we don't go past the end of the day
-    if (nextAvailableStart >= endOfDay) {
-      return // No more slots available today
-    }
-    
-    // Calculate hour and offset for the new task
-    const finalHour = Math.floor(nextAvailableStart / 60)
-    const finalOffset = nextAvailableStart % 60
-    
-    // Ensure we're still within valid range
-    if (finalHour >= 24 || finalOffset >= 60) {
+    if (existingBlockInHour) {
+      // Hour already has a block - check for gaps before AND after it
+      const blockRange = timeRanges.find(r => r.id === existingBlockInHour.id)
+      if (!blockRange) return
+      
+      // Find previous block
+      const prevBlock = timeRanges
+        .filter(r => r.end <= blockRange.start)
+        .sort((a, b) => b.end - a.end)[0]
+      
+      // Find next block after this one
+      const nextBlock = timeRanges.find(r => r.start > blockRange.end)
+      
+      // Check gap BEFORE existing block
+      const gapBeforeStart = prevBlock ? prevBlock.end : clickedMinute
+      const gapBeforeEnd = blockRange.start
+      const gapBeforeSize = gapBeforeEnd - gapBeforeStart
+      
+      // Check gap AFTER existing block
+      const gapAfterStart = blockRange.end
+      const gapAfterEnd = nextBlock ? nextBlock.start : clickedHourEnd
+      const gapAfterSize = gapAfterEnd - gapAfterStart
+      
+      // Prefer gap after block (since user clicked on the hour, they probably want to add after)
+      // But also check gap before if after is too small
+      let gapStart: number
+      let gapEnd: number
+      let gapSize: number
+      
+      if (gapAfterSize >= 5) {
+        // Use gap after block
+        gapStart = gapAfterStart
+        gapEnd = gapAfterEnd
+        gapSize = gapAfterSize
+      } else if (gapBeforeSize >= 5) {
+        // Use gap before block
+        gapStart = gapBeforeStart
+        gapEnd = gapBeforeEnd
+        gapSize = gapBeforeSize
+      } else {
+        // No gap available
+        return
+      }
+      
+      // Create task in the selected gap
+      const gapStartHour = Math.floor(gapStart / 60)
+      const gapStartOffset = gapStart % 60
+      const duration = gapSize
+      
+      if (selectedCategory) {
+        onBlockCreate(gapStartHour, selectedCategory, duration, gapStartOffset)
+      } else {
+        setPickerPosition({ x: e.clientX, y: e.clientY, hour: gapStartHour, startOffset: gapStartOffset, duration: duration })
+        setShowCategoryPicker(true)
+      }
       return
     }
+    
+    // No block in this hour - check if we can create one
+    // Find block that ends before this hour
+    const prevBlock = timeRanges
+      .filter(r => r.end <= clickedMinute)
+      .sort((a, b) => b.end - a.end)[0]
+    
+    // Find next block (could be in this hour or later)
+    const nextBlock = timeRanges.find(r => r.start > clickedMinute)
+    
+    // Calculate gap
+    const gapStart = prevBlock ? prevBlock.end : clickedMinute
+    let gapEnd = nextBlock ? nextBlock.start : clickedHourEnd
+    gapEnd = Math.min(gapEnd, clickedHourEnd) // Can't exceed hour boundary
+    
+    const availableSpace = gapEnd - gapStart
+    
+    if (availableSpace < 5) {
+      // No space - try extending previous block instead
+      if (prevBlock && gapStart < clickedHourEnd) {
+        const extension = Math.min(15, clickedHourEnd - prevBlock.end)
+        if (extension >= 5 && (!nextBlock || prevBlock.end + extension <= nextBlock.start)) {
+          const newDuration = prevBlock.block.duration_minutes + extension
+          onBlockUpdate(prevBlock.id, { duration_minutes: newDuration })
+        }
+      }
+      return
+    }
+    
+    // Can create new block - use actual available space as duration
+    const finalHour = hour
+    const finalOffset = 0
+    const duration = availableSpace
 
     if (selectedCategory) {
-      onBlockCreate(finalHour, selectedCategory, 60, finalOffset)
+      onBlockCreate(finalHour, selectedCategory, duration, finalOffset)
     } else {
-      setPickerPosition({ x: e.clientX, y: e.clientY, hour: finalHour, startOffset: finalOffset })
+      setPickerPosition({ x: e.clientX, y: e.clientY, hour: finalHour, startOffset: finalOffset, duration: duration })
       setShowCategoryPicker(true)
     }
   }
@@ -188,7 +252,7 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
     }
   }
 
-  const handleBlockMouseDown = (e: React.MouseEvent, blockId: string, edge: 'right') => {
+  const handleBlockMouseDown = (e: React.MouseEvent, blockId: string, edge: 'left' | 'right') => {
     e.stopPropagation()
     e.preventDefault()
 
@@ -203,7 +267,7 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
     })
   }
 
-  const handleBlockTouchStart = (e: React.TouchEvent, blockId: string, edge: 'right') => {
+  const handleBlockTouchStart = (e: React.TouchEvent, blockId: string, edge: 'left' | 'right') => {
     e.stopPropagation()
     e.preventDefault()
 
@@ -223,10 +287,10 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
     if (!dragStartData || !gridRef.current || !resizingBlock) return
 
     const rect = gridRef.current.getBoundingClientRect()
-    // Calculate width of one minute in pixels (approx)
-    // columns, minus gaps. simplified: total width / columns / 60
+    // Calculate width of one minute in pixels
     const gaps = columns - 1
-    const oneMinutePx = (rect.width - (gaps * 4)) / columns / 60
+    const gapSize = 6 // Updated to match the new gap size
+    const oneMinutePx = (rect.width - (gaps * gapSize)) / columns / 60
     
     const deltaX = clientX - dragStartData.mouseX
     const deltaMinutes = Math.round(deltaX / oneMinutePx)
@@ -236,46 +300,73 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
       setDragStartData(prev => prev ? { ...prev, hasMoved: true } : null)
     }
 
-    if (resizingBlock.edge === 'right') {
-      const block = normalizedBlocks.find(b => b.id === resizingBlock.id)
-      if (block) {
-        // Allow smooth resizing with 5m snap (requested "custom width")
-        let newDuration = dragStartData.originalDuration + deltaMinutes
-        // Snap to nearest 5 minutes
-        newDuration = Math.round(newDuration / 5) * 5
-        newDuration = Math.max(15, newDuration) // Minimum 15 mins
-        
-        // Row-based approach: Calculate block's time range
-        const blockStart = block.hour * 60 + (block.start_offset || 0)
-        const blockEnd = blockStart + newDuration
-        
-        // Find the next block that would overlap (using time ranges, not grid positions)
-        const otherBlocks = normalizedBlocks
-          .filter(b => b.id !== block.id)
-          .map(b => ({
-            start: b.hour * 60 + (b.start_offset || 0),
-            end: b.hour * 60 + (b.start_offset || 0) + b.duration_minutes,
-            id: b.id
-          }))
-          .filter(b => b.start >= blockStart) // Only blocks that start at or after this block
-          .sort((a, b) => a.start - b.start)
-        
-        // Find the first block that would overlap with the new end time
-        const overlappingBlock = otherBlocks.find(b => b.start < blockEnd)
-        
-        if (overlappingBlock) {
-          // Limit duration to not overlap with the next block
-          const maxDuration = overlappingBlock.start - blockStart
-          newDuration = Math.min(newDuration, maxDuration)
-        }
-        
-        // Prevent overflowing day (24:00)
-        const minutesUntilEndOfDay = (24 * 60) - blockStart
-        newDuration = Math.min(newDuration, minutesUntilEndOfDay)
+    const block = normalizedBlocks.find(b => b.id === resizingBlock.id)
+    if (!block) return
 
-        if (newDuration !== block.duration_minutes && newDuration > 0) {
-          onBlockUpdate(resizingBlock.id, { duration_minutes: newDuration })
-        }
+    const blockStart = block.hour * 60 + (block.start_offset || 0)
+    const blockEnd = blockStart + block.duration_minutes
+
+    if (resizingBlock.edge === 'right') {
+      // Resize end (duration)
+      let newDuration = dragStartData.originalDuration + deltaMinutes
+      newDuration = Math.round(newDuration / 5) * 5
+      newDuration = Math.max(5, newDuration) // Minimum 5 mins
+      
+      const newEnd = blockStart + newDuration
+      
+      // Find next block
+      const nextBlock = normalizedBlocks
+        .filter(b => b.id !== block.id)
+        .map(b => ({
+          start: b.hour * 60 + (b.start_offset || 0),
+          end: b.hour * 60 + (b.start_offset || 0) + b.duration_minutes,
+        }))
+        .find(b => b.start >= blockStart)
+      
+      if (nextBlock && newEnd > nextBlock.start) {
+        newDuration = nextBlock.start - blockStart
+      }
+      
+      // Prevent overflow
+      const minutesUntilEndOfDay = (24 * 60) - blockStart
+      newDuration = Math.min(newDuration, minutesUntilEndOfDay)
+
+      if (newDuration !== block.duration_minutes && newDuration > 0) {
+        onBlockUpdate(resizingBlock.id, { duration_minutes: newDuration })
+      }
+    } else if (resizingBlock.edge === 'left') {
+      // Resize start (hour + start_offset)
+      let adjustment = deltaMinutes
+      adjustment = Math.round(adjustment / 5) * 5
+      
+      let newStart = blockStart + adjustment
+      newStart = Math.max(0, newStart) // Can't go before midnight
+      
+      // Find previous block
+      const prevBlock = normalizedBlocks
+        .filter(b => b.id !== block.id)
+        .map(b => ({
+          start: b.hour * 60 + (b.start_offset || 0),
+          end: b.hour * 60 + (b.start_offset || 0) + b.duration_minutes,
+        }))
+        .filter(b => b.end <= blockStart)
+        .sort((a, b) => b.end - a.end)[0]
+      
+      if (prevBlock && newStart < prevBlock.end) {
+        newStart = prevBlock.end
+      }
+      
+      // Calculate new duration
+      const newDuration = blockEnd - newStart
+      
+      if (newDuration >= 5 && newStart !== blockStart) {
+        const newHour = Math.floor(newStart / 60)
+        const newOffset = newStart % 60
+        onBlockUpdate(resizingBlock.id, { 
+          hour: newHour, 
+          start_offset: newOffset, 
+          duration_minutes: newDuration 
+        })
       }
     }
   }, [resizingBlock, dragStartData, normalizedBlocks, onBlockUpdate, columns])
@@ -320,48 +411,62 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
       // Update existing block's category
       onBlockUpdate(pickerPosition.blockId, { category_id: categoryId })
     } else if (pickerPosition?.hour !== undefined) {
-      // Create new block
-      onBlockCreate(pickerPosition.hour, categoryId, 60, pickerPosition.startOffset || 0)
+      // Create new block with calculated duration (or default 60 if not set)
+      const duration = pickerPosition.duration || 60
+      onBlockCreate(pickerPosition.hour, categoryId, duration, pickerPosition.startOffset || 0)
     }
     setShowCategoryPicker(false)
     setPickerPosition(null)
   }
 
+  // Render mobile view on mobile devices
+  if (isMobile) {
+    return (
+      <HourGridMobile
+        hours={hours}
+        categories={categories}
+        onBlockUpdate={onBlockUpdate}
+        onBlockCreate={onBlockCreate}
+        onBlockDelete={onBlockDelete}
+      />
+    )
+  }
+
   return (
     <div className="relative">
-      {/* Active category indicator */}
+      {/* Active category indicator - cleaner */}
       {selectedCategory && (
-        <div className="mb-4 flex items-center gap-3 py-2.5 px-3 bg-white/[0.02] rounded-lg border border-white/[0.06]">
+        <div className="mb-3 flex items-center gap-2 py-2 px-3 bg-white/[0.04] rounded-lg border border-white/[0.08]">
           <div
-            className="w-3 h-3 rounded-md"
+            className="w-2.5 h-2.5 rounded"
             style={{
               backgroundColor: getCategoryColor(categories.find(c => c.id === selectedCategory))
             }}
           />
-          <span className="text-xs text-secondary tracking-wide">
+          <span className="text-xs text-secondary font-medium">
             {categories.find(c => c.id === selectedCategory)?.name || 'Unknown'}
           </span>
           <button
             onClick={() => setSelectedCategory(null)}
-            className="ml-auto text-xs text-muted hover:text-secondary tracking-wide transition-colors"
+            className="ml-auto text-[10px] text-muted hover:text-secondary transition-colors"
           >
             Clear
           </button>
         </div>
       )}
 
-      {/* Grid container - 4 columns on mobile, 8 columns on desktop */}
+      {/* Grid container - cleaner spacing */}
       <div
         ref={gridRef}
-        className="grid grid-cols-4 md:grid-cols-8 gap-1 select-none relative"
+        className="grid grid-cols-4 md:grid-cols-8 gap-1.5 select-none relative"
         onContextMenu={(e) => e.preventDefault()}
       >
-        {/* Static grid cells - visual only, NO block logic */}
+        {/* Static grid cells - cleaner design */}
         {Array.from({ length: 24 }, (_, hour) => {
           return (
             <div
               key={`cell-${hour}`}
-              className="hour-cell relative aspect-[1.2] cursor-pointer group rounded-xl overflow-hidden z-0 pointer-events-auto bg-white/5"
+              className="hour-cell relative aspect-[1.2] cursor-pointer group rounded-lg overflow-hidden z-0 pointer-events-auto bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-white/[0.1] transition-all"
               onClick={(e) => handleCellClick(hour, e)}
               onContextMenu={(e) => {
                 e.preventDefault()
@@ -377,13 +482,10 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
               }}
               title={formatHour(hour)}
             >
-              {/* Hour label */}
-              <span className="absolute top-1.5 left-2 text-[9px] font-mono text-muted group-hover:text-secondary transition-opacity z-10">
+              {/* Hour label - cleaner */}
+              <span className="absolute top-1 left-1.5 text-[8px] font-mono text-muted/50 group-hover:text-secondary/70 transition-colors z-10">
                 {formatHour(hour)}
               </span>
-              
-              {/* Hover state */}
-              <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors" />
             </div>
           )
         })}
@@ -392,61 +494,34 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
         <div className="absolute inset-0 pointer-events-none">
           {visualSegments.map(segment => {
             const blockColor = getCategoryColor(segment.category)
-            const gapSize = 4 // 4px gap
-            
-            // Calculate position percentages
-            // left: col * (100%/8) + gaps? No, simpler to use calc
-            // Width of one column-slot (col + gap) is 1/8th of container width? 
-            // Actually tailwind grid-cols-8 gap-1 means:
-            // (100% - 7*4px) / 8 is the width of one cell.
             
             // Calculate position using startOffset
             const startOffset = segment.startOffset || 0
             
-            // Width calculation: 
-            // Total cell width = (100% - 28px)/8
-            // 4px gap per cell
-            
-            // Width = (duration / 60) * cellWidth?
-            // Need to account for gaps if spanning.
-            
-            // Complex Calc:
-            // 1. Base width of ONE minute = (100% - 28px) / 8 / 60
-            // 2. Base width of duration = duration * oneMinuteWidth
-            // 3. PLUS gaps: for every full cell boundary crossed.
-            //    Boundary crossing count = floor((startOffset + duration) / 60) - floor(startOffset / 60)?
-            //    If startOffset=30, duration=30 -> end=60. 0 crossings.
-            //    If startOffset=30, duration=60 -> end=90. 1 crossing (at 60).
-            //    Gap is 4px.
-            
-            // Calculate gaps based on columns
+            // Calculate gaps based on columns (6px gap for better spacing)
             const gaps = columns - 1
-            const totalGapPx = gaps * 4
+            const gapSize = 6
+            const totalGapPx = gaps * gapSize
             
             const cellWidthPercent = `((100% - ${totalGapPx}px) / ${columns})`
             const minuteWidthPercent = `(${cellWidthPercent} / 60)`
             
             const crossings = Math.floor((startOffset + segment.duration - 0.1) / 60)
-            const gapPixels = crossings * 4
+            const gapPixels = crossings * gapSize
             
             const widthCalc = `calc((${minuteWidthPercent} * ${segment.duration}) + ${gapPixels}px)`
             
-            // Left calculation:
-            // Col offset + Start offset within cell
-            // Col offset = col * (cellWidth + 4px)
-            // Start offset = startOffset * minuteWidth
-            
-            const colOffsetCalc = `((${cellWidthPercent} + 4px) * ${segment.col})`
+            // Left calculation
+            const colOffsetCalc = `((${cellWidthPercent} + ${gapSize}px) * ${segment.col})`
             const startOffsetCalc = `(${minuteWidthPercent} * ${startOffset})`
             const leftCalc = `calc(${colOffsetCalc} + ${startOffsetCalc})`
             
-            // Vertical calc: rows with gaps
-            // Number of rows = Math.ceil(24 / columns)
+            // Vertical calc
             const rows = Math.ceil(24 / columns)
             const rowGaps = rows - 1
-            const totalRowGapPx = rowGaps * 4
+            const totalRowGapPx = rowGaps * gapSize
             const rowHeightCalc = `((100% - ${totalRowGapPx}px) / ${rows})`
-            const topCalc = `calc((${rowHeightCalc} * ${segment.row}) + ${segment.row * 4}px)`
+            const topCalc = `calc((${rowHeightCalc} * ${segment.row}) + ${segment.row * gapSize}px)`
             const heightCalc = `calc(${rowHeightCalc})`
 
             return (
@@ -461,64 +536,100 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
                 }}
                 title={`${formatHour(segment.hour)} - ${segment.category?.name || 'Uncategorized'} (${segment.duration_minutes}min)`}
               >
-                {/* Block content */}
+                {/* Block content - cleaner design */}
                 <div 
-                  className="absolute inset-0 flex items-center justify-center px-2 rounded-xl overflow-hidden"
+                  className="absolute inset-0 rounded-lg overflow-hidden shadow-sm border border-white/10"
                   style={{
                     backgroundColor: blockColor,
                   }}
                   onMouseDown={(e) => {
                     const target = e.target as HTMLElement
                     if (!target.classList.contains('resize-handle')) {
-                      // Click tracking
                       blockClickRef.current = { blockId: segment.id, startX: e.clientX, startY: e.clientY }
                     }
                   }}
                   onContextMenu={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  onBlockDelete(segment.id)
-                }}
-                onClick={(e) => handleBlockClick(e, segment.id)}
+                    e.preventDefault()
+                    e.stopPropagation()
+                    onBlockDelete(segment.id)
+                  }}
+                  onClick={(e) => handleBlockClick(e, segment.id)}
                 >
-                  {/* Category Name & Start Time - only show on first segment */}
+                  {/* Content - only show on first segment */}
                   {segment.isFirst && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none p-2.5">
-                      {/* Category Name - Centered */}
-                      {segment.category && (
-                        <span className={`text-[13px] font-medium text-white leading-tight text-center ${
-                          segment.duration_minutes < 40 ? 'break-words' : 'truncate'
-                        }`}>
-                          {segment.category.name}
-                        </span>
+                    <>
+                      {/* Large/Medium blocks - horizontal layout */}
+                      {segment.duration_minutes >= 30 && (
+                        <div className="absolute inset-0 p-2 flex flex-col pointer-events-none select-none">
+                          {/* Category name */}
+                          {segment.category && (
+                            <span className="text-xs font-semibold text-white/95 leading-tight mb-1 truncate">
+                              {segment.category.name}
+                            </span>
+                          )}
+                          
+                          {/* Time range */}
+                          <div className="flex items-center gap-1 text-[10px] font-mono text-white/80">
+                            <span>{formatTime(segment.hour * 60 + (segment.startOffset || 0))}</span>
+                            <span>-</span>
+                            <span>{formatTime(segment.hour * 60 + (segment.startOffset || 0) + segment.duration_minutes)}</span>
+                          </div>
+                        </div>
                       )}
                       
-                      {/* Start Time - Bottom Left */}
-                      <span className="absolute bottom-2.5 left-2.5 text-[10px] font-mono text-white/70 leading-none tracking-tight">
-                        {formatTime(segment.hour * 60 + (segment.startOffset || 0))}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {/* End Time - only show on last segment */}
-                  {segment.isLast && (
-                    <span className={`absolute text-[10px] font-mono text-white/70 leading-none tracking-tight pointer-events-none select-none ${
-                      segment.duration_minutes >= 60 
-                        ? 'bottom-2.5 right-2.5' 
-                        : 'top-2.5 right-2.5'
-                    }`}>
-                      {formatTime(segment.hour * 60 + (segment.start_offset || 0) + segment.duration_minutes)}
-                    </span>
+                      {/* Small blocks - vertical text */}
+                      {segment.duration_minutes < 30 && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
+                          <div className="flex flex-col items-center gap-1">
+                            {/* Category name - vertical */}
+                            {segment.category && (
+                              <span 
+                                className="text-[11px] font-bold text-white/95 tracking-wider"
+                                style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+                              >
+                                {segment.category.name}
+                              </span>
+                            )}
+                            {/* Duration */}
+                            <span className="text-[9px] font-medium text-white/80">
+                              {segment.duration_minutes}m
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
 
-                  {/* Right resize handle - ONLY on the last segment */}
+                  {/* Left resize handle - adjust start time */}
+                  {segment.isFirst && (
+                    <div
+                      className={`resize-handle absolute left-0 top-0 bottom-0 z-20 transition-all rounded-l-lg ${
+                        isMobile 
+                          ? 'w-8 bg-black/20 active:bg-black/30' 
+                          : 'w-3 opacity-0 group-hover:opacity-100 hover:bg-black/20'
+                      } cursor-ew-resize flex items-center justify-center`}
+                      onMouseDown={(e) => {
+                        e.stopPropagation()
+                        e.preventDefault()
+                        handleBlockMouseDown(e, segment.id, 'left')
+                      }}
+                      onTouchStart={(e) => handleBlockTouchStart(e, segment.id, 'left')}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {isMobile && (
+                        <div className="w-0.5 h-6 bg-white/40 rounded-full" />
+                      )}
+                    </div>
+                  )}
+
+                  {/* Right resize handle - adjust end time/duration */}
                   {segment.isLast && (
                     <div
-                      className={`resize-handle absolute right-0 top-0 bottom-0 z-20 transition-opacity rounded-r-xl ${
+                      className={`resize-handle absolute right-0 top-0 bottom-0 z-20 transition-all rounded-r-lg ${
                         isMobile 
-                          ? 'w-6 opacity-60 active:opacity-100' 
-                          : 'w-4 opacity-0 group-hover:opacity-100 hover:bg-white/20'
-                      } cursor-ew-resize`}
+                          ? 'w-8 bg-black/20 active:bg-black/30' 
+                          : 'w-3 opacity-0 group-hover:opacity-100 hover:bg-black/20'
+                      } cursor-ew-resize flex items-center justify-center`}
                       onMouseDown={(e) => {
                         e.stopPropagation()
                         e.preventDefault()
@@ -526,7 +637,11 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
                       }}
                       onTouchStart={(e) => handleBlockTouchStart(e, segment.id, 'right')}
                       onClick={(e) => e.stopPropagation()}
-                    />
+                    >
+                      {isMobile && (
+                        <div className="w-0.5 h-6 bg-white/40 rounded-full" />
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -573,24 +688,24 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
         </>
       )}
 
-      {/* Category palette */}
-      <div className="mt-6 pt-4 border-t border-white/[0.06]">
-        <div className="flex flex-wrap gap-2">
+      {/* Category palette - cleaner */}
+      <div className="mt-4 pt-3 border-t border-white/[0.06]">
+        <div className="flex flex-wrap gap-1.5">
           {categories.map((category) => (
             <button
               key={category.id}
               onClick={() => setSelectedCategory(category.id)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-left ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-all text-left ${
                 selectedCategory === category.id
-                  ? 'bg-white/[0.08] ring-1 ring-white/10'
-                  : 'hover:bg-white/[0.04]'
+                  ? 'bg-white/[0.1] ring-1 ring-white/20'
+                  : 'bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06]'
               }`}
             >
               <div
-                className="w-2.5 h-2.5 rounded-md flex-shrink-0"
+                className="w-2 h-2 rounded flex-shrink-0"
                 style={{ backgroundColor: getCategoryColor(category) }}
               />
-              <span className={`text-xs ${
+              <span className={`text-[11px] font-medium ${
                 selectedCategory === category.id ? 'text-primary' : 'text-secondary'
               }`}>
                 {category.name}

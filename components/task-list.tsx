@@ -2,13 +2,15 @@
 
 import { useState, useRef, useEffect } from "react"
 import { Plus, X, Clock, Trash2, Tag, Calendar, Check, Repeat } from "lucide-react"
-import type { Task, Category } from "@/lib/types"
+import type { Task, Category, HourLog } from "@/lib/types"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn, formatHour } from "@/lib/utils"
+import { TimelinePicker } from "@/components/timeline-picker"
 
 interface TaskListProps {
   tasks: Task[]
   categories: Category[]
+  hourLogs: HourLog[]
   onTaskCreate: (title: string, categoryId: string, isRecurring: boolean) => void
   onTaskUpdate: (taskId: string, updates: Partial<Task>) => void
   onTaskDelete: (taskId: string) => void
@@ -25,6 +27,7 @@ function getCategoryColor(category?: Category): string {
 export function TaskList({ 
   tasks, 
   categories, 
+  hourLogs,
   onTaskCreate, 
   onTaskUpdate, 
   onTaskDelete,
@@ -96,19 +99,37 @@ export function TaskList({
     if (checked) {
       // Open completion modal
       setCompletingTask(task)
-      // Set default time to now rounded to nearest 15m
-      const now = new Date()
-      const hours = now.getHours().toString().padStart(2, '0')
-      const minutes = (Math.round(now.getMinutes() / 15) * 15).toString().padStart(2, '0')
-      const start = `${hours}:${minutes}`
+      
+      // Smart default: Find the last logged activity end time
+      const sortedLogs = [...hourLogs].sort((a, b) => {
+        const aEnd = a.hour * 60 + (a.start_offset || 0) + a.duration_minutes
+        const bEnd = b.hour * 60 + (b.start_offset || 0) + b.duration_minutes
+        return bEnd - aEnd
+      })
+      
+      let startMinutes = 0
+      if (sortedLogs.length > 0) {
+        const lastLog = sortedLogs[0]
+        startMinutes = lastLog.hour * 60 + (lastLog.start_offset || 0) + lastLog.duration_minutes
+      } else {
+        // No logs yet, use current time rounded to nearest 15m
+        const now = new Date()
+        startMinutes = now.getHours() * 60 + Math.round(now.getMinutes() / 15) * 15
+      }
+      
+      // Cap at end of day
+      if (startMinutes >= 1440) startMinutes = 1380 // 23:00
+      
+      const startHours = Math.floor(startMinutes / 60)
+      const startMins = startMinutes % 60
+      const start = `${startHours.toString().padStart(2, '0')}:${startMins.toString().padStart(2, '0')}`
       setStartTime(start)
       
-      // Set end time to 1 hour later
-      const endDate = new Date(now)
-      endDate.setHours(endDate.getHours() + 1)
-      const endHours = endDate.getHours().toString().padStart(2, '0')
-      const endMinutes = endDate.getMinutes().toString().padStart(2, '0')
-      setEndTime(`${endHours}:${endMinutes}`)
+      // Set end time to 1 hour later (or end of day)
+      const endMinutes = Math.min(startMinutes + 60, 1440)
+      const endHours = Math.floor(endMinutes / 60)
+      const endMins = endMinutes % 60
+      setEndTime(`${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`)
       
       setNotes(task.notes || "")
       setKeepActive(false) // Reset checkbox when opening modal
@@ -143,6 +164,22 @@ export function TaskList({
     // Ensure minimum duration of 5 minutes
     if (durationMinutes < 5) {
       durationMinutes = 5
+    }
+    
+    // Check for overlaps - prevent submission if overlap exists
+    const hasOverlap = hourLogs.some(log => {
+      const logStart = log.hour * 60 + (log.start_offset || 0)
+      const logEnd = logStart + log.duration_minutes
+      return (
+        (startTotalMinutes >= logStart && startTotalMinutes < logEnd) ||
+        (endTotalMinutes > logStart && endTotalMinutes <= logEnd) ||
+        (startTotalMinutes <= logStart && endTotalMinutes >= logEnd)
+      )
+    })
+    
+    if (hasOverlap) {
+      // Don't allow submission - the timeline picker already shows the error
+      return
     }
     
     onTaskComplete(completingTask.id, startHour, durationMinutes, startMinutes, notes, keepActive)
@@ -405,47 +442,18 @@ export function TaskList({
             </div>
 
             <div className="space-y-4 pt-2">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted uppercase tracking-wider">Start Time</label>
-                  <div className="relative">
-                    <Clock className="absolute left-2.5 top-2.5 w-4 h-4 text-muted" />
-                    <input
-                      type="time"
-                      value={startTime}
-                      onChange={(e) => {
-                        setStartTime(e.target.value)
-                        // Auto-update end time if it's before start time
-                        if (e.target.value >= endTime) {
-                          const [hours, mins] = e.target.value.split(':')
-                          const endDate = new Date()
-                          endDate.setHours(parseInt(hours))
-                          endDate.setMinutes(parseInt(mins))
-                          endDate.setHours(endDate.getHours() + 1)
-                          const newEndHours = endDate.getHours().toString().padStart(2, '0')
-                          const newEndMins = endDate.getMinutes().toString().padStart(2, '0')
-                          setEndTime(`${newEndHours}:${newEndMins}`)
-                        }
-                      }}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-primary focus:outline-none focus:border-white/20"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted uppercase tracking-wider">End Time</label>
-                  <div className="relative">
-                    <Clock className="absolute left-2.5 top-2.5 w-4 h-4 text-muted" />
-                    <input
-                      type="time"
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                      min={startTime}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-primary focus:outline-none focus:border-white/20"
-                    />
-                  </div>
-                </div>
-              </div>
+              {/* Timeline Picker */}
+              <TimelinePicker
+                existingLogs={hourLogs}
+                categories={categories}
+                startTime={startTime}
+                endTime={endTime}
+                onTimeChange={(start, end) => {
+                  setStartTime(start)
+                  setEndTime(end)
+                }}
+                selectedCategory={categories.find(c => c.id === completingTask?.category_id)}
+              />
 
               <div className="space-y-2">
                 <label className="text-xs font-medium text-muted uppercase tracking-wider">Notes</label>

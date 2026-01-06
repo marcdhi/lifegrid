@@ -482,6 +482,7 @@ function TodayContent() {
           <TaskList 
             tasks={tasks}
             categories={categories}
+            hourLogs={hourLogs}
             onTaskCreate={handleTaskCreate}
             onTaskUpdate={handleTaskUpdate}
             onTaskDelete={handleTaskDelete}
