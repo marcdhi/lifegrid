@@ -10,6 +10,7 @@ import { DatePicker } from "@/components/ui/date-picker"
 import { TextField } from "@/components/ui/text-field"
 import { IconButton } from "@/components/ui/icon-button"
 import { EmptyState } from "@/components/ui/empty-state"
+import { Button } from "@/components/ui/button"
 
 // Format currency with Indian locale
 function formatCurrency(amount: number, currency: string = 'INR'): string {
@@ -314,13 +315,16 @@ export default function SpendingPage() {
               placeholder="Optional"
             />
             
-            <button
+            <Button
               type="submit"
               disabled={submitting}
-              className="text-sm tracking-wide text-secondary hover:text-primary transition-colors disabled:opacity-50"
+              variant="outline"
+              size="sm"
+              className="w-full"
             >
+              <Plus className="size-4" />
               {submitting ? 'Adding...' : 'Add entry'}
-            </button>
+            </Button>
           </form>
         )}
 
