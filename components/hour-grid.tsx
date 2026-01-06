@@ -87,12 +87,12 @@ export function HourGrid({ hours, categories, onHourUpdate, onHourClear }: HourG
               backgroundColor: getCategoryColor(categories.find(c => c.id === selectedCategory))
             }}
           />
-          <span className="text-xs text-secondary tracking-wide">
+          <span className="text-sm text-secondary tracking-wide">
             {categories.find(c => c.id === selectedCategory)?.name || 'Unknown'}
           </span>
           <button
             onClick={() => setSelectedCategory(null)}
-            className="ml-auto text-xs text-muted hover:text-secondary tracking-wide transition-colors"
+            className="ml-auto text-sm text-muted hover:text-secondary tracking-wide transition-colors"
           >
             Clear
           </button>
@@ -167,7 +167,7 @@ export function HourGrid({ hours, categories, onHourUpdate, onHourClear }: HourG
                     className="w-3 h-3 rounded-md flex-shrink-0"
                     style={{ backgroundColor: getCategoryColor(category) }}
                   />
-                  <span className="text-xs text-secondary group-hover:text-primary transition-colors">
+                  <span className="text-sm text-secondary group-hover:text-primary transition-colors">
                     {category.name}
                   </span>
                 </button>
@@ -194,7 +194,7 @@ export function HourGrid({ hours, categories, onHourUpdate, onHourClear }: HourG
                 className="w-2.5 h-2.5 rounded-md flex-shrink-0"
                 style={{ backgroundColor: getCategoryColor(category) }}
               />
-              <span className={`text-xs ${
+              <span className={`text-sm ${
                 selectedCategory === category.id ? 'text-primary' : 'text-secondary'
               }`}>
                 {category.name}

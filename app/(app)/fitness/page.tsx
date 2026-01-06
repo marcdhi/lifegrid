@@ -424,7 +424,7 @@ export default function FitnessPage() {
             <h1 className="text-2xl font-light tracking-tight text-primary">
               Welcome to Fitness
             </h1>
-            <p className="text-xs text-muted">
+            <p className="text-sm text-muted">
               A gentle structure for building healthy habits
             </p>
           </header>
@@ -440,13 +440,13 @@ export default function FitnessPage() {
               <div className="flex flex-col gap-3 pt-4">
                 <button
                   onClick={() => setOnboardingStep(1)}
-                  className="w-full py-3 text-xs tracking-wide text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-xl transition-colors"
+                  className="w-full py-3 text-sm tracking-wide text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-xl transition-colors"
                 >
                   Set up my profile
                 </button>
                 <button
                   onClick={handleSkipOnboarding}
-                  className="text-xs tracking-wide text-muted hover:text-secondary transition-colors"
+                  className="text-sm tracking-wide text-muted hover:text-secondary transition-colors"
                 >
                   Skip for now
                 </button>
@@ -456,7 +456,7 @@ export default function FitnessPage() {
 
           {onboardingStep === 1 && (
             <div className="space-y-6 animate-fade">
-              <p className="text-xs text-muted text-center">
+              <p className="text-sm text-muted text-center">
                 All fields are optional. Share what feels comfortable.
               </p>
               
@@ -490,13 +490,13 @@ export default function FitnessPage() {
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setOnboardingStep(0)}
-                  className="text-xs tracking-wide text-muted hover:text-secondary transition-colors"
+                  className="text-sm tracking-wide text-muted hover:text-secondary transition-colors"
                 >
                   Back
                 </button>
                 <button
                   onClick={() => setOnboardingStep(2)}
-                  className="flex-1 py-2.5 text-xs tracking-wide text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-xl transition-colors"
+                  className="flex-1 py-2.5 text-sm tracking-wide text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-xl transition-colors"
                 >
                   Continue
                 </button>
@@ -506,7 +506,7 @@ export default function FitnessPage() {
 
           {onboardingStep === 2 && (
             <div className="space-y-6 animate-fade">
-              <p className="text-xs text-muted text-center">
+              <p className="text-sm text-muted text-center">
                 What feels right for you right now?
               </p>
               
@@ -522,7 +522,7 @@ export default function FitnessPage() {
                     }`}
                   >
                     <span className="text-sm text-primary">{goal.label}</span>
-                    <p className="text-xs text-muted mt-0.5">{goal.description}</p>
+                    <p className="text-sm text-muted mt-0.5">{goal.description}</p>
                   </button>
                 ))}
               </div>
@@ -530,13 +530,13 @@ export default function FitnessPage() {
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setOnboardingStep(1)}
-                  className="text-xs tracking-wide text-muted hover:text-secondary transition-colors"
+                  className="text-sm tracking-wide text-muted hover:text-secondary transition-colors"
                 >
                   Back
                 </button>
                 <button
                   onClick={handleOnboardingComplete}
-                  className="flex-1 py-2.5 text-xs tracking-wide text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-xl transition-colors"
+                  className="flex-1 py-2.5 text-sm tracking-wide text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-xl transition-colors"
                 >
                   Get started
                 </button>
@@ -601,7 +601,7 @@ export default function FitnessPage() {
               <button
                 type="submit"
                 disabled={foodFormTags.length === 0}
-                className="text-xs tracking-wide text-secondary hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="text-sm tracking-wide text-secondary hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Add entry
               </button>
@@ -620,7 +620,7 @@ export default function FitnessPage() {
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-3">
-                      <span className="text-xs text-muted tabular-nums">{formatTime(entry.time)}</span>
+                      <span className="text-sm text-muted tabular-nums">{formatTime(entry.time)}</span>
                       <div className="flex flex-wrap gap-1.5">
                         {entry.food_tags.map((tag, idx) => (
                           <span key={idx} className="text-sm text-secondary">{tag}</span>
@@ -628,7 +628,7 @@ export default function FitnessPage() {
                       </div>
                     </div>
                     {entry.notes && (
-                      <p className="text-xs text-muted mt-0.5 ml-14">{entry.notes}</p>
+                      <p className="text-sm text-muted mt-0.5 ml-14">{entry.notes}</p>
                     )}
                   </div>
                   <IconButton
@@ -690,7 +690,7 @@ export default function FitnessPage() {
                             {exercise.name}
                           </h3>
                           {exercise.suggested_reps && (
-                            <span className="text-xs text-muted flex-shrink-0">
+                            <span className="text-sm text-muted flex-shrink-0">
                               {exercise.suggested_sets && exercise.suggested_sets > 1 
                                 ? `${exercise.suggested_sets} × ${exercise.suggested_reps}`
                                 : exercise.suggested_reps
@@ -698,7 +698,7 @@ export default function FitnessPage() {
                             </span>
                           )}
                         </div>
-                        <p className={`text-xs mt-1 ${isCompleted ? 'text-muted' : 'text-secondary'}`}>
+                        <p className={`text-sm mt-1 ${isCompleted ? 'text-muted' : 'text-secondary'}`}>
                           {exercise.description}
                         </p>
                       </div>
@@ -709,7 +709,7 @@ export default function FitnessPage() {
 
               {todaysExercises.length > 0 && (
                 <div className="pt-2">
-                  <p className="text-xs text-muted text-center">
+                  <p className="text-sm text-muted text-center">
                     {completions.length} of {todaysExercises.length} completed — No pressure.
                   </p>
                 </div>
@@ -733,18 +733,18 @@ export default function FitnessPage() {
                     isToday ? 'bg-white/[0.04]' : ''
                   }`}
                 >
-                  <span className={`text-[10px] ${isToday ? 'text-primary' : 'text-muted'}`}>
+                  <span className={`text-xs ${isToday ? 'text-primary' : 'text-muted'}`}>
                     {dayLabel}
                   </span>
                   <div className="mt-1.5">
                     {plan?.workout_type === 'rest' ? (
-                      <span className="text-[10px] text-muted">—</span>
+                      <span className="text-xs text-muted">—</span>
                     ) : plan?.workout_type === 'optional' ? (
-                      <span className="text-[10px] text-muted">○</span>
+                      <span className="text-xs text-muted">○</span>
                     ) : plan ? (
-                      <span className={`text-[10px] ${isToday ? 'text-secondary' : 'text-muted'}`}>●</span>
+                      <span className={`text-xs ${isToday ? 'text-secondary' : 'text-muted'}`}>●</span>
                     ) : (
-                      <span className="text-[10px] text-muted">—</span>
+                      <span className="text-xs text-muted">—</span>
                     )}
                   </div>
                 </div>
@@ -755,7 +755,7 @@ export default function FitnessPage() {
 
         {/* Philosophy footer */}
         <div className="pt-6 border-t border-white/[0.06]">
-          <p className="text-xs text-muted italic text-center">
+          <p className="text-sm text-muted italic text-center">
             The system guides, you decide. No judgment, no streaks, just consistency.
           </p>
         </div>

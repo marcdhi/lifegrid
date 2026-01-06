@@ -443,12 +443,12 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
               backgroundColor: getCategoryColor(categories.find(c => c.id === selectedCategory))
             }}
           />
-          <span className="text-xs text-secondary font-medium">
+          <span className="text-sm text-secondary font-medium">
             {categories.find(c => c.id === selectedCategory)?.name || 'Unknown'}
           </span>
           <button
             onClick={() => setSelectedCategory(null)}
-            className="ml-auto text-[10px] text-muted hover:text-secondary transition-colors"
+            className="ml-auto text-xs text-muted hover:text-secondary transition-colors"
           >
             Clear
           </button>
@@ -563,13 +563,13 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
                         <div className="absolute inset-0 p-2 flex flex-col pointer-events-none select-none">
                           {/* Category name */}
                           {segment.category && (
-                            <span className="text-xs font-semibold text-white/95 leading-tight mb-1 truncate">
+                            <span className="text-sm font-semibold text-white/95 leading-tight mb-1 truncate">
                               {segment.category.name}
                             </span>
                           )}
                           
                           {/* Time range */}
-                          <div className="flex items-center gap-1 text-[10px] font-mono text-white/80">
+                          <div className="flex items-center gap-1 text-xs font-mono text-white/80">
                             <span>{formatTime(segment.hour * 60 + (segment.startOffset || 0))}</span>
                             <span>-</span>
                             <span>{formatTime(segment.hour * 60 + (segment.startOffset || 0) + segment.duration_minutes)}</span>
@@ -584,7 +584,7 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
                             {/* Category name - vertical */}
                             {segment.category && (
                               <span 
-                                className="text-[11px] font-bold text-white/95 tracking-wider"
+                                className="text-sm font-bold text-white/95 tracking-wider"
                                 style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
                               >
                                 {segment.category.name}
@@ -678,7 +678,7 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
                     className="w-3 h-3 rounded-md flex-shrink-0"
                     style={{ backgroundColor: getCategoryColor(category) }}
                   />
-                  <span className="text-xs text-secondary group-hover:text-primary transition-colors">
+                  <span className="text-sm text-secondary group-hover:text-primary transition-colors">
                     {category.name}
                   </span>
                 </button>
@@ -705,7 +705,7 @@ export function HourGrid({ hours, categories, onBlockUpdate, onBlockCreate, onBl
                 className="w-2 h-2 rounded flex-shrink-0"
                 style={{ backgroundColor: getCategoryColor(category) }}
               />
-              <span className={`text-[11px] font-medium ${
+              <span className={`text-sm font-medium ${
                 selectedCategory === category.id ? 'text-primary' : 'text-secondary'
               }`}>
                 {category.name}

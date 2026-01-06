@@ -96,7 +96,7 @@ export default function AuthPage() {
                 setError(null)
               }}
               className={cn(
-                "px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200",
+                "px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200",
                 mode === "login" 
                   ? "bg-white/10 text-white shadow-sm" 
                   : "text-muted hover:text-secondary"
@@ -111,7 +111,7 @@ export default function AuthPage() {
                 setError(null)
               }}
               className={cn(
-                "px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-200",
+                "px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200",
                 mode === "signup" 
                   ? "bg-white/10 text-white shadow-sm" 
                   : "text-muted hover:text-secondary"
@@ -149,7 +149,7 @@ export default function AuthPage() {
             />
 
             {error && !error.includes("email") && !error.includes("password") && (
-              <p className="text-xs text-destructive px-1">{error}</p>
+              <p className="text-sm text-destructive px-1">{error}</p>
             )}
 
             <button

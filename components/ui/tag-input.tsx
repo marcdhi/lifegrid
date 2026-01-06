@@ -70,7 +70,7 @@ export function TagInput({
   return (
     <div className={cn("space-y-1 relative", className)}>
       {label && (
-        <label htmlFor={inputId} className="text-[11px] tracking-wide text-muted font-medium">
+        <label htmlFor={inputId} className="text-sm tracking-wide text-muted font-medium">
           {label}
         </label>
       )}
@@ -82,7 +82,7 @@ export function TagInput({
             {tags.map(tag => (
               <span
                 key={tag}
-                className="inline-flex items-center gap-1 px-2 py-0.5 text-xs text-secondary bg-white/[0.06] rounded-lg"
+                className="inline-flex items-center gap-1 px-2 py-0.5 text-sm text-secondary bg-white/[0.06] rounded-lg"
               >
                 {tag}
                 <button
@@ -141,11 +141,11 @@ export function TagInput({
                   key={suggestion.id}
                   type="button"
                   onClick={() => addTag(suggestion.name)}
-                  className="w-full text-left px-3 py-2 text-sm text-secondary hover:bg-white/[0.04] transition-colors flex items-center justify-between min-h-[44px]"
+                  className="w-full text-left px-3 py-2 text-base text-secondary hover:bg-white/[0.04] transition-colors flex items-center justify-between min-h-[44px]"
                 >
                   <span>{suggestion.name}</span>
                   {suggestion.count !== undefined && (
-                    <span className="text-xs text-muted">×{suggestion.count}</span>
+                    <span className="text-sm text-muted">×{suggestion.count}</span>
                   )}
                 </button>
               ))}
@@ -154,7 +154,7 @@ export function TagInput({
         )}
       </div>
       
-      <p id={helpTextId} className="text-xs text-muted">
+      <p id={helpTextId} className="text-sm text-muted">
         Tap + or press Enter/comma to add
       </p>
     </div>

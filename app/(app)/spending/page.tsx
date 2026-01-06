@@ -236,7 +236,7 @@ export default function SpendingPage() {
             <button
               key={range}
               onClick={() => setTimeRange(range)}
-              className={`text-xs tracking-wide transition-colors rounded-lg px-3 py-1.5 ${
+              className={`text-sm tracking-wide transition-colors rounded-lg px-3 py-1.5 ${
                 timeRange === range
                   ? 'text-primary bg-white/[0.04]'
                   : 'text-muted hover:text-secondary'
@@ -317,7 +317,7 @@ export default function SpendingPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="text-xs tracking-wide text-secondary hover:text-primary transition-colors disabled:opacity-50"
+              className="text-sm tracking-wide text-secondary hover:text-primary transition-colors disabled:opacity-50"
             >
               {submitting ? 'Adding...' : 'Add entry'}
             </button>
@@ -334,8 +334,8 @@ export default function SpendingPage() {
                 return (
                   <div key={category} className="space-y-1.5">
                     <div className="flex justify-between items-baseline">
-                      <span className="text-xs text-secondary">{category}</span>
-                      <span className="text-xs text-muted tabular-nums">{formatCurrency(total)}</span>
+                      <span className="text-sm text-secondary">{category}</span>
+                      <span className="text-sm text-muted tabular-nums">{formatCurrency(total)}</span>
                     </div>
                     <div className="h-1.5 bg-white/[0.03] rounded-full overflow-hidden">
                       <div 
@@ -369,14 +369,14 @@ export default function SpendingPage() {
                         <span className="text-sm text-primary tabular-nums">
                           {formatCurrency(entry.amount)}
                         </span>
-                        <span className="text-xs text-muted truncate">{entry.category}</span>
+                        <span className="text-sm text-muted truncate">{entry.category}</span>
                       </div>
                       {entry.description && (
-                        <p className="text-xs text-muted mt-0.5 truncate">{entry.description}</p>
+                        <p className="text-sm text-muted mt-0.5 truncate">{entry.description}</p>
                       )}
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
-                      <span className="text-[10px] text-muted tabular-nums">{day?.date}</span>
+                      <span className="text-xs text-muted tabular-nums">{day?.date}</span>
                       <IconButton
                         onClick={() => handleDelete(entry.id)}
                         variant="destructive"
