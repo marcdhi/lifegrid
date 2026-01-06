@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, KeyboardEvent, ChangeEvent } from "react"
+import { useState, useRef, KeyboardEvent, ChangeEvent, useId } from "react"
 import { X, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -25,9 +25,9 @@ export function TagInput({
   const [showSuggestions, setShowSuggestions] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   
-  // Generate unique IDs for accessibility
-  const inputId = useRef(`tag-input-${Math.random().toString(36).substr(2, 9)}`).current
-  const helpTextId = useRef(`tag-input-help-${Math.random().toString(36).substr(2, 9)}`).current
+  // Generate unique IDs for accessibility using React's useId hook
+  const inputId = useId()
+  const helpTextId = useId()
 
   const filteredSuggestions = suggestions.filter(
     s => s.name.toLowerCase().includes(input.toLowerCase()) && !tags.includes(s.name)
