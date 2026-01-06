@@ -166,7 +166,7 @@ export function FitnessSummary({ date, userId }: FitnessSummaryProps) {
   return (
     <div className="space-y-6 pt-6 border-t border-white/[0.06]">
       <div className="flex items-center justify-between">
-        <h2 className="text-[11px] tracking-wide text-muted font-medium">Fitness</h2>
+        <h2 className="text-sm tracking-wide text-muted font-medium">Fitness</h2>
         <Link
           href={`/fitness`}
           className="flex items-center gap-1 text-xs tracking-wide text-muted hover:text-secondary transition-colors"
@@ -178,7 +178,7 @@ export function FitnessSummary({ date, userId }: FitnessSummaryProps) {
       {/* Food Summary */}
       {hasFood && (
         <div className="space-y-2">
-          <span className="text-[11px] tracking-wide text-secondary font-medium">Food</span>
+          <span className="text-sm tracking-wide text-secondary font-medium">Food</span>
           <div className="space-y-1">
             {foodEntries.slice(0, 3).map(entry => (
               <div key={entry.id} className="flex items-baseline gap-3">
@@ -199,7 +199,7 @@ export function FitnessSummary({ date, userId }: FitnessSummaryProps) {
       {hasWorkoutPlan && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] tracking-wide text-secondary font-medium">Workout</span>
+            <span className="text-sm tracking-wide text-secondary font-medium">Workout</span>
             {workoutPlan.workout_type !== 'rest' && (
               <span className="text-xs text-muted">
                 {completedCount}/{exercises.length} done

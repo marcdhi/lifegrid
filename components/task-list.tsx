@@ -392,7 +392,7 @@ export function TaskList({
                 )}
                 
                 {task.notes && (
-                  <span className="hidden sm:inline-block text-[11px] text-muted/50 truncate max-w-[200px]">
+                  <span className="hidden sm:inline-block text-sm text-muted/50 truncate max-w-[200px]">
                     {task.notes}
                   </span>
                 )}
