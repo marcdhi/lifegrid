@@ -22,6 +22,7 @@ import { TagInput } from "@/components/ui/tag-input"
 import { IconButton } from "@/components/ui/icon-button"
 import { Card } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
+import { Button } from "@/components/ui/button"
 
 // Default workout plan for beginners
 const DEFAULT_WORKOUT_PLAN: { day: number; type: WorkoutType }[] = [
@@ -598,13 +599,16 @@ export default function FitnessPage() {
                 placeholder="Any context..."
               />
 
-              <button
+              <Button
                 type="submit"
                 disabled={foodFormTags.length === 0}
-                className="text-sm tracking-wide text-secondary hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                variant="outline"
+                size="sm"
+                className="w-full"
               >
+                <Plus className="size-4" />
                 Add entry
-              </button>
+              </Button>
             </form>
           )}
 
