@@ -24,6 +24,8 @@ Run these SQL scripts **in order** in your Supabase SQL Editor.
 013_allow_update_system_categories.sql
 014_add_exercise_images.sql
 015_add_recurring_tasks.sql
+016_allow_multiple_blocks_per_hour.sql
+017_create_friends_system.sql
 ```
 
 ## What Each Script Does
@@ -42,7 +44,9 @@ Run these SQL scripts **in order** in your Supabase SQL Editor.
 - **012**: Updates categories with user association
 - **013**: Allows updating system categories
 - **014**: Adds exercise images
-- **015**: Adds recurring tasks support (NEW)
+- **015**: Adds recurring tasks support
+- **016**: Allows multiple blocks per hour with different start offsets
+- **017**: Creates friends system (friendships and privacy settings tables)
 
 ## Important Notes
 

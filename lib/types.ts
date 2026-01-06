@@ -202,3 +202,29 @@ export interface DayFitnessSummary {
   exercises: WorkoutExercise[]
 }
 
+// ==================
+// FRIENDS SYSTEM TYPES
+// ==================
+
+export type FriendshipStatus = 'pending' | 'accepted' | 'blocked'
+
+export interface Friendship {
+  id: string
+  user_id: string
+  friend_id: string
+  status: FriendshipStatus
+  created_at: string
+  updated_at: string
+}
+
+export interface UserPrivacySettings {
+  id: string
+  user_id: string
+  fitness_public: boolean
+  analytics_public: boolean
+  schedule_public: boolean
+  grid_public: boolean
+  created_at: string
+  updated_at: string
+}
+
