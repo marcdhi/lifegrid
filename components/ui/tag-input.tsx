@@ -73,50 +73,52 @@ export function TagInput({
 
       <div className="relative">
         {/* Tags display and input container */}
-        <div className="min-h-[44px] bg-input rounded-lg px-3 py-2 flex flex-wrap gap-1.5 border border-transparent focus-within:border-white/[0.08] transition-all">
-          {tags.map(tag => (
-            <span
-              key={tag}
-              className="inline-flex items-center gap-1 px-2 py-0.5 text-xs text-secondary bg-white/[0.06] rounded-lg"
-            >
-              {tag}
-              <button
-                type="button"
-                onClick={() => removeTag(tag)}
-                className="text-muted hover:text-primary transition-colors"
-                aria-label={`Remove ${tag}`}
+        <div className="min-h-[44px] bg-input rounded-lg border border-transparent focus-within:border-white/[0.08] transition-all">
+          <div className="flex flex-wrap gap-1.5 px-3 py-2">
+            {tags.map(tag => (
+              <span
+                key={tag}
+                className="inline-flex items-center gap-1 px-2 py-0.5 text-xs text-secondary bg-white/[0.06] rounded-lg"
               >
-                <X className="w-3 h-3" />
-              </button>
-            </span>
-          ))}
-          
-          {/* Input wrapper with button */}
-          <div className="flex-1 flex items-center gap-2 min-w-[120px]">
-            <input
-              ref={inputRef}
-              type="text"
-              value={input}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
-              onFocus={() => input.trim() && setShowSuggestions(filteredSuggestions.length > 0)}
-              placeholder={tags.length === 0 ? placeholder : "Add more..."}
-              className="flex-1 bg-transparent text-sm text-primary outline-none placeholder:text-muted"
-              inputMode="text"
-              enterKeyHint="done"
-            />
+                {tag}
+                <button
+                  type="button"
+                  onClick={() => removeTag(tag)}
+                  className="text-muted hover:text-primary transition-colors"
+                  aria-label={`Remove ${tag}`}
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
             
-            {/* Mobile-friendly Add button */}
-            {input.trim().length > 0 && (
-              <button
-                type="button"
-                onClick={() => addTag(input)}
-                className="flex-shrink-0 w-[44px] h-[44px] -my-2 -mr-1 flex items-center justify-center text-secondary hover:text-primary transition-colors rounded-lg hover:bg-white/[0.04]"
-                aria-label="Add tag"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-            )}
+            {/* Input wrapper with button */}
+            <div className="flex-1 flex items-center min-w-[120px]">
+              <input
+                ref={inputRef}
+                type="text"
+                value={input}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                onFocus={() => input.trim() && setShowSuggestions(filteredSuggestions.length > 0)}
+                placeholder={tags.length === 0 ? placeholder : "Add more..."}
+                className="flex-1 bg-transparent text-sm text-primary outline-none placeholder:text-muted py-1"
+                inputMode="text"
+                enterKeyHint="done"
+              />
+              
+              {/* Mobile-friendly Add button */}
+              {input.trim().length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => addTag(input)}
+                  className="flex-shrink-0 w-11 h-11 flex items-center justify-center text-secondary hover:text-primary transition-colors rounded-lg hover:bg-white/[0.04]"
+                  aria-label="Add tag"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
