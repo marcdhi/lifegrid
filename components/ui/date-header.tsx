@@ -78,7 +78,7 @@ export function DateHeader({ date, onPrevious, onNext, onToday, className, userE
           </button>
           <button
             onClick={onToday}
-            className="px-3 py-1.5 text-xs tracking-wide text-muted hover:text-secondary transition-colors rounded-lg hover:bg-white/[0.03]"
+            className="px-3 py-1.5 text-sm tracking-wide text-muted hover:text-secondary transition-colors rounded-lg hover:bg-white/[0.03]"
           >
             Today
           </button>

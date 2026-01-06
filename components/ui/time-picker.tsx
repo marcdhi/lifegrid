@@ -13,7 +13,7 @@ export const TimePicker = forwardRef<HTMLInputElement, TimePickerProps>(
     return (
       <div className="space-y-1">
         {label && (
-          <label className="text-[11px] tracking-wide text-muted font-medium">
+          <label className="text-sm tracking-wide text-muted font-medium">
             {label}
           </label>
         )}
@@ -32,7 +32,7 @@ export const TimePicker = forwardRef<HTMLInputElement, TimePickerProps>(
           {...props}
         />
         {error && (
-          <p className="text-xs text-destructive">{error}</p>
+          <p className="text-sm text-destructive">{error}</p>
         )}
       </div>
     )

@@ -11,7 +11,7 @@ export function SectionHeader({ children, className, action }: SectionHeaderProp
   if (action) {
     return (
       <div className={cn("flex items-center justify-between", className)}>
-        <h2 className="text-[11px] tracking-wide text-muted font-medium">
+        <h2 className="text-sm tracking-wide text-muted font-medium">
           {children}
         </h2>
         {action}
@@ -20,7 +20,7 @@ export function SectionHeader({ children, className, action }: SectionHeaderProp
   }
 
   return (
-    <h2 className={cn("text-[11px] tracking-wide text-muted font-medium", className)}>
+    <h2 className={cn("text-sm tracking-wide text-muted font-medium", className)}>
       {children}
     </h2>
   )

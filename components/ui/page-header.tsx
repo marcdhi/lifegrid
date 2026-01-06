@@ -20,7 +20,7 @@ export function PageHeader({ title, subtitle, actions, className }: PageHeaderPr
           title
         )}
         {subtitle && (
-          <p className="text-xs tracking-wide text-muted">
+          <p className="text-sm tracking-wide text-muted">
             {subtitle}
           </p>
         )}

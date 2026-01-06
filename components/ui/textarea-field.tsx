@@ -11,7 +11,7 @@ export const TextareaField = forwardRef<HTMLTextAreaElement, TextareaFieldProps>
     return (
       <div className="space-y-1">
         {label && (
-          <label className="text-[11px] tracking-wide text-muted font-medium">
+          <label className="text-sm tracking-wide text-muted font-medium">
             {label}
           </label>
         )}
@@ -29,7 +29,7 @@ export const TextareaField = forwardRef<HTMLTextAreaElement, TextareaFieldProps>
           {...props}
         />
         {error && (
-          <p className="text-xs text-destructive">{error}</p>
+          <p className="text-sm text-destructive">{error}</p>
         )}
       </div>
     )
