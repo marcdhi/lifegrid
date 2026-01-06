@@ -26,6 +26,7 @@ Run these SQL scripts **in order** in your Supabase SQL Editor.
 015_add_recurring_tasks.sql
 016_allow_multiple_blocks_per_hour.sql
 017_create_friends_system.sql
+019_allow_user_search_for_friends.sql
 ```
 
 ## What Each Script Does
@@ -47,11 +48,12 @@ Run these SQL scripts **in order** in your Supabase SQL Editor.
 - **015**: Adds recurring tasks support
 - **016**: Allows multiple blocks per hour with different start offsets
 - **017**: Creates friends system (friendships and privacy settings tables)
+- **019**: Allows authenticated users to search for other users (for friend requests)
 
 ## Important Notes
 
 - RLS (Row Level Security) is enabled on all tables
-- Users can only access their own data
+- Users can access their own data and search for other users (id and email only)
 - Categories are globally readable
 - Do not modify category colors after creation (color consistency is critical)
 

@@ -15,7 +15,8 @@ import {
   LogOut,
   Heart,
   Menu,
-  X
+  X,
+  Users
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
@@ -33,6 +34,7 @@ const navItems: NavItem[] = [
   { label: "Fitness", href: "/fitness", icon: Heart },
   { label: "Spending", href: "/spending", icon: IndianRupee },
   { label: "Reflection", href: "/reflection", icon: BookOpen },
+  { label: "Friends", href: "/friends", icon: Users },
   { label: "Settings", href: "/settings", icon: Settings },
 ]
 
