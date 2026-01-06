@@ -242,7 +242,7 @@ export function TaskList({
                         setShowCategoryPicker(false)
                         setCategorySearch("")
                       }}
-                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 text-base text-left group"
+                      className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-white/5 text-base text-left group"
                     >
                       <div 
                         className="w-2.5 h-2.5 rounded-full flex-shrink-0"

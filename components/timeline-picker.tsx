@@ -185,7 +185,7 @@ export function TimelinePicker({
                   const newEnd = Math.min(newStart + duration, slot.end, 1440)
                   onTimeChange(minutesToTimeString(newStart), minutesToTimeString(newEnd))
                 }}
-                className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-md text-sm text-secondary hover:text-primary transition-all whitespace-nowrap font-medium"
+                className="px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-md text-sm text-secondary hover:text-primary transition-all whitespace-nowrap font-medium"
               >
                 {formatTime(slot.start)}-{formatTime(Math.min(slot.start + duration, slot.end))}
               </button>
