@@ -24,6 +24,10 @@ export function TagInput({
   const [input, setInput] = useState("")
   const [showSuggestions, setShowSuggestions] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  
+  // Generate unique IDs for accessibility
+  const inputId = useRef(`tag-input-${Math.random().toString(36).substr(2, 9)}`).current
+  const helpTextId = useRef(`tag-input-help-${Math.random().toString(36).substr(2, 9)}`).current
 
   const filteredSuggestions = suggestions.filter(
     s => s.name.toLowerCase().includes(input.toLowerCase()) && !tags.includes(s.name)
@@ -66,7 +70,7 @@ export function TagInput({
   return (
     <div className={cn("space-y-1 relative", className)}>
       {label && (
-        <label className="text-[11px] tracking-wide text-muted font-medium">
+        <label htmlFor={inputId} className="text-[11px] tracking-wide text-muted font-medium">
           {label}
         </label>
       )}
@@ -96,6 +100,7 @@ export function TagInput({
             <div className="flex-1 flex items-center min-w-[120px]">
               <input
                 ref={inputRef}
+                id={inputId}
                 type="text"
                 value={input}
                 onChange={handleInputChange}
@@ -105,6 +110,7 @@ export function TagInput({
                 className="flex-1 bg-transparent text-sm text-primary outline-none placeholder:text-muted py-1"
                 inputMode="text"
                 enterKeyHint="done"
+                aria-describedby={helpTextId}
               />
               
               {/* Mobile-friendly Add button */}
@@ -148,7 +154,7 @@ export function TagInput({
         )}
       </div>
       
-      <p className="text-xs text-muted">
+      <p id={helpTextId} className="text-xs text-muted">
         Tap + or press Enter/comma to add
       </p>
     </div>
