@@ -588,7 +588,7 @@ export default function FitnessPage() {
                 tags={foodFormTags}
                 onTagsChange={setFoodFormTags}
                 suggestions={foodTags.map(t => ({ id: t.id, name: t.name, count: t.use_count }))}
-                placeholder="Type food name and press Enter"
+                placeholder="Type food name, tap + to add"
               />
 
               <TextField

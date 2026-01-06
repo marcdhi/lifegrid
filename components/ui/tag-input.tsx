@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, KeyboardEvent, ChangeEvent } from "react"
-import { X } from "lucide-react"
+import { X, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface TagInputProps {
@@ -18,7 +18,7 @@ export function TagInput({
   tags,
   onTagsChange,
   suggestions = [],
-  placeholder = "Type and press Enter",
+  placeholder = "Type and tap + to add",
   className
 }: TagInputProps) {
   const [input, setInput] = useState("")
@@ -72,7 +72,7 @@ export function TagInput({
       )}
 
       <div className="relative">
-        {/* Tags display */}
+        {/* Tags display and input container */}
         <div className="min-h-[44px] bg-input rounded-lg px-3 py-2 flex flex-wrap gap-1.5 border border-transparent focus-within:border-white/[0.08] transition-all">
           {tags.map(tag => (
             <span
@@ -84,23 +84,40 @@ export function TagInput({
                 type="button"
                 onClick={() => removeTag(tag)}
                 className="text-muted hover:text-primary transition-colors"
+                aria-label={`Remove ${tag}`}
               >
                 <X className="w-3 h-3" />
               </button>
             </span>
           ))}
           
-          {/* Input */}
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            onFocus={() => input.trim() && setShowSuggestions(filteredSuggestions.length > 0)}
-            placeholder={tags.length === 0 ? placeholder : "Add more..."}
-            className="flex-1 min-w-[120px] bg-transparent text-sm text-primary outline-none placeholder:text-muted"
-          />
+          {/* Input wrapper with button */}
+          <div className="flex-1 flex items-center gap-2 min-w-[120px]">
+            <input
+              ref={inputRef}
+              type="text"
+              value={input}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              onFocus={() => input.trim() && setShowSuggestions(filteredSuggestions.length > 0)}
+              placeholder={tags.length === 0 ? placeholder : "Add more..."}
+              className="flex-1 bg-transparent text-sm text-primary outline-none placeholder:text-muted"
+              inputMode="text"
+              enterKeyHint="done"
+            />
+            
+            {/* Mobile-friendly Add button */}
+            {input.trim().length > 0 && (
+              <button
+                type="button"
+                onClick={() => addTag(input)}
+                className="flex-shrink-0 w-[44px] h-[44px] -my-2 -mr-1 flex items-center justify-center text-secondary hover:text-primary transition-colors rounded-lg hover:bg-white/[0.04]"
+                aria-label="Add tag"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Autocomplete dropdown */}
@@ -116,7 +133,7 @@ export function TagInput({
                   key={suggestion.id}
                   type="button"
                   onClick={() => addTag(suggestion.name)}
-                  className="w-full text-left px-3 py-2 text-sm text-secondary hover:bg-white/[0.04] transition-colors flex items-center justify-between"
+                  className="w-full text-left px-3 py-2 text-sm text-secondary hover:bg-white/[0.04] transition-colors flex items-center justify-between min-h-[44px]"
                 >
                   <span>{suggestion.name}</span>
                   {suggestion.count !== undefined && (
@@ -130,7 +147,7 @@ export function TagInput({
       </div>
       
       <p className="text-xs text-muted">
-        Separate with Enter or comma
+        Tap + or press Enter/comma to add
       </p>
     </div>
   )
