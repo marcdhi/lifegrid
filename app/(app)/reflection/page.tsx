@@ -108,9 +108,9 @@ export default function ReflectionPage() {
                     <div className="flex flex-col justify-end pb-0.5">
                       <div className="flex items-baseline gap-2">
                         <span className="text-sm font-light text-primary">{month}</span>
-                        <span className="text-xs text-muted tabular-nums">{year}</span>
+                        <span className="text-sm text-muted tabular-nums">{year}</span>
                       </div>
-                      <span className="text-xs text-secondary">{weekday}</span>
+                      <span className="text-sm text-secondary">{weekday}</span>
                     </div>
                   </div>
 
@@ -118,7 +118,7 @@ export default function ReflectionPage() {
                   <div className="space-y-4">
                     {day.highlights && day.highlights.trim() && (
                       <div>
-                        <span className="text-xs tracking-wide text-muted font-medium block mb-1.5">
+                        <span className="text-sm tracking-wide text-muted font-medium block mb-1.5">
                           Highlights
                         </span>
                         <p className="text-sm text-secondary leading-relaxed">{day.highlights}</p>
@@ -127,7 +127,7 @@ export default function ReflectionPage() {
 
                     {day.notes && day.notes.trim() && (
                       <div>
-                        <span className="text-xs tracking-wide text-muted font-medium block mb-1.5">
+                        <span className="text-sm tracking-wide text-muted font-medium block mb-1.5">
                           Notes
                         </span>
                         <p className="text-sm text-secondary leading-relaxed whitespace-pre-wrap">
@@ -145,7 +145,7 @@ export default function ReflectionPage() {
         {/* Philosophy */}
         {days.length > 0 && (
           <div className="pt-6 border-t border-white/[0.06]">
-            <p className="text-xs text-muted italic text-center">
+            <p className="text-sm text-muted italic text-center">
               Your thoughts, preserved. No formatting, no pressure, just you.
             </p>
           </div>

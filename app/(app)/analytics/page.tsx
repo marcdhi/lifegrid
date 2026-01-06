@@ -21,7 +21,7 @@ interface StatCardProps {
 function StatCard({ label, value, className }: StatCardProps) {
   return (
     <div className={className}>
-      <span className="text-xs tracking-wide text-muted font-medium block mb-2">{label}</span>
+      <span className="text-sm tracking-wide text-muted font-medium block mb-2">{label}</span>
       <p className="text-3xl font-light text-primary tabular-nums">{value}</p>
     </div>
   )
@@ -292,7 +292,7 @@ export default function AnalyticsPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setActiveSection('time')}
-                className={`px-3 py-1.5 text-xs tracking-wide transition-colors rounded-lg ${
+                className={`px-3 py-1.5 text-sm tracking-wide transition-colors rounded-lg ${
                   activeSection === 'time'
                     ? 'text-primary bg-white/[0.06]'
                     : 'text-muted hover:text-secondary'
@@ -302,7 +302,7 @@ export default function AnalyticsPage() {
               </button>
               <button
                 onClick={() => setActiveSection('fitness')}
-                className={`px-3 py-1.5 text-xs tracking-wide transition-colors rounded-lg ${
+                className={`px-3 py-1.5 text-sm tracking-wide transition-colors rounded-lg ${
                   activeSection === 'fitness'
                     ? 'text-primary bg-white/[0.06]'
                     : 'text-muted hover:text-secondary'
@@ -320,7 +320,7 @@ export default function AnalyticsPage() {
             <button
               key={range}
               onClick={() => setTimeRange(range)}
-              className={`text-xs tracking-wide transition-colors rounded-lg px-3 py-1.5 ${
+              className={`text-sm tracking-wide transition-colors rounded-lg px-3 py-1.5 ${
                 timeRange === range
                   ? 'text-primary bg-white/[0.04]'
                   : 'text-muted hover:text-secondary'
@@ -361,7 +361,7 @@ export default function AnalyticsPage() {
                             />
                             <span className="text-sm text-secondary">{category.name}</span>
                           </div>
-                          <span className="text-xs text-muted tabular-nums">
+                          <span className="text-sm text-muted tabular-nums">
                             {hours.toFixed(1)}h · {percentage.toFixed(0)}%
                           </span>
                         </div>
@@ -409,7 +409,7 @@ export default function AnalyticsPage() {
                         <div className="space-y-2">
                           <div className="flex justify-between items-baseline">
                             <span className="text-sm text-secondary">{tag}</span>
-                            <span className="text-xs text-muted tabular-nums">{count}×</span>
+                            <span className="text-sm text-muted tabular-nums">{count}×</span>
                           </div>
                           <div className="h-1.5 bg-white/[0.03] rounded-full overflow-hidden">
                             <div 
@@ -447,7 +447,7 @@ export default function AnalyticsPage() {
               {/* Top exercises */}
               {workoutStats.topExercises.length > 0 && (
                 <div className="pt-4">
-                  <h3 className="text-xs tracking-wide text-muted font-medium mb-3">Most completed exercises</h3>
+                  <h3 className="text-sm tracking-wide text-muted font-medium mb-3">Most completed exercises</h3>
                   <div className="space-y-2">
                     {workoutStats.topExercises.map(({ exercise, count }) => {
                       if (!exercise) return null
@@ -458,7 +458,7 @@ export default function AnalyticsPage() {
                           <div className="space-y-2">
                             <div className="flex justify-between items-baseline">
                               <span className="text-sm text-secondary">{exercise.name}</span>
-                              <span className="text-xs text-muted tabular-nums">{count}×</span>
+                              <span className="text-sm text-muted tabular-nums">{count}×</span>
                             </div>
                             <div className="h-1.5 bg-white/[0.03] rounded-full overflow-hidden">
                               <div 
@@ -479,7 +479,7 @@ export default function AnalyticsPage() {
             {foodTagStats.length === 0 && workoutStats.totalExercises === 0 && (
               <div className="py-12 text-center">
                 <p className="text-sm text-secondary">No fitness data logged yet</p>
-                <p className="text-xs text-muted mt-1">Start tracking your meals and workouts</p>
+                <p className="text-sm text-muted mt-1">Start tracking your meals and workouts</p>
               </div>
             )}
           </>
@@ -487,7 +487,7 @@ export default function AnalyticsPage() {
 
         {/* Philosophy */}
         <div className="pt-6 border-t border-white/[0.06]">
-          <p className="text-xs text-muted italic text-center">
+          <p className="text-sm text-muted italic text-center">
             Observational, not aspirational. No goals, no targets, no judgments.
           </p>
         </div>

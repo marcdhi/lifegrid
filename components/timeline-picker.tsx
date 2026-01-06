@@ -110,8 +110,8 @@ export function TimelinePicker({
       {/* Visual Timeline - Read-only, shows context */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-[10px] text-muted uppercase tracking-wider">Your Day</label>
-          <span className="text-xs text-secondary font-medium">
+          <label className="text-xs text-muted uppercase tracking-wider">Your Day</label>
+          <span className="text-sm text-secondary font-medium">
             {formatTime(currentStart)} → {formatTime(currentEnd)}
           </span>
         </div>
@@ -166,7 +166,7 @@ export function TimelinePicker({
       {/* Overlap warning */}
       {hasOverlap && overlappingBlock && (
         <div className="p-2 bg-red-500/10 border border-red-500/20 rounded-lg">
-          <p className="text-[11px] text-red-400 leading-snug">
+          <p className="text-sm text-red-400 leading-snug">
             ⚠️ Overlaps with <strong>{overlappingBlock.category?.name}</strong> ({formatTime(overlappingBlock.start)}-{formatTime(overlappingBlock.end)})
           </p>
         </div>
@@ -175,7 +175,7 @@ export function TimelinePicker({
       {/* Suggested slots */}
       {hasOverlap && suggestedSlots.length > 0 && (
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-muted shrink-0">Try:</span>
+          <span className="text-xs text-muted shrink-0">Try:</span>
           <div className="flex gap-1.5 overflow-x-auto">
             {suggestedSlots.map((slot, i) => (
               <button
@@ -185,7 +185,7 @@ export function TimelinePicker({
                   const newEnd = Math.min(newStart + duration, slot.end, 1440)
                   onTimeChange(minutesToTimeString(newStart), minutesToTimeString(newEnd))
                 }}
-                className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-md text-[11px] text-secondary hover:text-primary transition-all whitespace-nowrap font-medium"
+                className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-md text-sm text-secondary hover:text-primary transition-all whitespace-nowrap font-medium"
               >
                 {formatTime(slot.start)}-{formatTime(Math.min(slot.start + duration, slot.end))}
               </button>
@@ -199,11 +199,11 @@ export function TimelinePicker({
         <div className="grid grid-cols-2 gap-3">
           {/* Start time */}
           <div className="space-y-1.5">
-            <label className="text-[10px] text-muted uppercase tracking-wider">Start Time</label>
+            <label className="text-xs text-muted uppercase tracking-wider">Start Time</label>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => adjustTime(-15)}
-                className="px-2 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-secondary hover:text-primary transition-all"
+                className="px-2 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-sm text-secondary hover:text-primary transition-all"
               >
                 -15m
               </button>
@@ -215,7 +215,7 @@ export function TimelinePicker({
               />
               <button
                 onClick={() => adjustTime(15)}
-                className="px-2 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-secondary hover:text-primary transition-all"
+                className="px-2 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-sm text-secondary hover:text-primary transition-all"
               >
                 +15m
               </button>
@@ -224,11 +224,11 @@ export function TimelinePicker({
           
           {/* Duration */}
           <div className="space-y-1.5">
-            <label className="text-[10px] text-muted uppercase tracking-wider">Duration</label>
+            <label className="text-xs text-muted uppercase tracking-wider">Duration</label>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => adjustDuration(-15)}
-                className="px-2 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-secondary hover:text-primary transition-all"
+                className="px-2 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-sm text-secondary hover:text-primary transition-all"
               >
                 -15m
               </button>
@@ -237,7 +237,7 @@ export function TimelinePicker({
               </div>
               <button
                 onClick={() => adjustDuration(15)}
-                className="px-2 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-secondary hover:text-primary transition-all"
+                className="px-2 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-sm text-secondary hover:text-primary transition-all"
               >
                 +15m
               </button>

@@ -228,7 +228,7 @@ export function TaskList({
                     value={categorySearch}
                     onChange={(e) => setCategorySearch(e.target.value)}
                     placeholder="Search or create..."
-                    className="w-full bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-xs text-primary focus:outline-none focus:border-white/20 transition-colors placeholder:text-muted"
+                    className="w-full bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-sm text-primary focus:outline-none focus:border-white/20 transition-colors placeholder:text-muted"
                   />
                 </div>
                 
@@ -242,7 +242,7 @@ export function TaskList({
                         setShowCategoryPicker(false)
                         setCategorySearch("")
                       }}
-                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 text-sm text-left group"
+                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 text-base text-left group"
                     >
                       <div 
                         className="w-2.5 h-2.5 rounded-full flex-shrink-0"
@@ -257,7 +257,7 @@ export function TaskList({
                   
                   {categorySearch && !filteredCategories.find(c => c.name.toLowerCase() === categorySearch.toLowerCase()) && (
                     <div className="p-2 space-y-2 bg-white/[0.02] rounded-lg mt-1 mx-1 border border-white/[0.04]">
-                       <div className="flex items-center justify-between text-xs text-muted mb-1 px-1">
+                       <div className="flex items-center justify-between text-sm text-muted mb-1 px-1">
                          <span>Create "{categorySearch}"</span>
                        </div>
                        
@@ -286,7 +286,7 @@ export function TaskList({
                        <button
                         type="button"
                         onClick={() => handleCreateCategory(categorySearch)}
-                        className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md bg-white/10 hover:bg-white/20 text-xs font-medium text-primary transition-colors mt-2"
+                        className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md bg-white/10 hover:bg-white/20 text-sm font-medium text-primary transition-colors mt-2"
                       >
                         <Plus className="w-3 h-3" />
                         Create Category
@@ -295,7 +295,7 @@ export function TaskList({
                   )}
                   
                   {filteredCategories.length === 0 && !categorySearch && (
-                     <div className="px-2 py-3 text-xs text-muted text-center italic">
+                     <div className="px-2 py-3 text-sm text-muted text-center italic">
                        Type to create a new category
                      </div>
                   )}
@@ -338,7 +338,7 @@ export function TaskList({
       <div className="space-y-2">
         {sortedTasks.length === 0 && (
           <div className="text-center py-16 px-4">
-             <div className="text-muted/30 text-sm font-light">No tasks yet</div>
+             <div className="text-muted/30 text-base font-light">No tasks yet</div>
           </div>
         )}
         
@@ -376,7 +376,7 @@ export function TaskList({
                 </span>
 
                 {task.is_recurring && (
-                  <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-400 text-[10px] font-semibold tracking-wide border border-blue-500/20">
+                  <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-400 text-xs font-semibold tracking-wide border border-blue-500/20">
                     <Repeat className="w-2.5 h-2.5" />
                     Daily
                   </span>
@@ -384,7 +384,7 @@ export function TaskList({
 
                 {category && (
                     <span 
-                      className="px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide text-white/90 shadow-sm opacity-80 group-hover:opacity-100 transition-opacity"
+                      className="px-2 py-0.5 rounded-full text-xs font-semibold tracking-wide text-white/90 shadow-sm opacity-80 group-hover:opacity-100 transition-opacity"
                       style={{ backgroundColor: categoryColor }}
                     >
                       {category.name}
@@ -431,7 +431,7 @@ export function TaskList({
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-primary">Complete Task</h3>
-                <p className="text-sm text-muted">{completingTask.title}</p>
+                <p className="text-base text-muted">{completingTask.title}</p>
               </div>
               <button 
                 onClick={() => setCompletingTask(null)}
@@ -456,12 +456,12 @@ export function TaskList({
               />
 
               <div className="space-y-2">
-                <label className="text-xs font-medium text-muted uppercase tracking-wider">Notes</label>
+                <label className="text-sm font-medium text-muted uppercase tracking-wider">Notes</label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="How did it go?"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:border-white/20 min-h-[80px] resize-none"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-base text-primary focus:outline-none focus:border-white/20 min-h-[80px] resize-none"
                 />
               </div>
 
@@ -479,7 +479,7 @@ export function TaskList({
                 />
                 <label 
                   htmlFor="keep-active"
-                  className="text-sm text-secondary cursor-pointer select-none"
+                  className="text-base text-secondary cursor-pointer select-none"
                 >
                   Keep task active for repeat logging
                 </label>
@@ -488,13 +488,13 @@ export function TaskList({
               <div className="flex items-center gap-3 pt-2">
                 <button
                   onClick={() => setCompletingTask(null)}
-                  className="flex-1 py-2.5 rounded-xl border border-white/10 text-sm font-medium hover:bg-white/5 transition-colors"
+                  className="flex-1 py-2.5 rounded-xl border border-white/10 text-base font-medium hover:bg-white/5 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={confirmCompletion}
-                  className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                  className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-base font-medium hover:bg-primary/90 transition-colors"
                 >
                   Complete & Log Time
                 </button>
@@ -514,7 +514,7 @@ export function TaskList({
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-primary mb-1">Delete Task?</h3>
-                <p className="text-sm text-muted">
+                <p className="text-base text-muted">
                   Are you sure you want to delete this task? This action cannot be undone.
                 </p>
               </div>
@@ -523,13 +523,13 @@ export function TaskList({
             <div className="flex items-center gap-3 pt-2">
               <button
                 onClick={() => setDeletingTask(null)}
-                className="flex-1 py-2.5 rounded-xl border border-white/10 text-sm font-medium text-secondary hover:bg-white/5 transition-colors"
+                className="flex-1 py-2.5 rounded-xl border border-white/10 text-base font-medium text-secondary hover:bg-white/5 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteTask}
-                className="flex-1 py-2.5 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 text-sm font-medium hover:bg-red-500/20 hover:border-red-500/30 transition-colors"
+                className="flex-1 py-2.5 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 text-base font-medium hover:bg-red-500/20 hover:border-red-500/30 transition-colors"
               >
                 Delete
               </button>

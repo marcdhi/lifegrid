@@ -150,7 +150,7 @@ export function FitnessSummary({ date, userId }: FitnessSummaryProps) {
   if (loading) {
     return (
       <div className="py-4">
-        <p className="text-xs text-muted">Loading fitness data...</p>
+        <p className="text-sm text-muted">Loading fitness data...</p>
       </div>
     )
   }
@@ -182,14 +182,14 @@ export function FitnessSummary({ date, userId }: FitnessSummaryProps) {
           <div className="space-y-1">
             {foodEntries.slice(0, 3).map(entry => (
               <div key={entry.id} className="flex items-baseline gap-3">
-                <span className="text-[10px] text-muted tabular-nums">{formatTime(entry.time)}</span>
+                <span className="text-xs text-muted tabular-nums">{formatTime(entry.time)}</span>
                 <span className="text-xs text-secondary">
                   {entry.food_tags.join(', ')}
                 </span>
               </div>
             ))}
             {foodEntries.length > 3 && (
-              <p className="text-[10px] text-muted">+{foodEntries.length - 3} more entries</p>
+              <p className="text-xs text-muted">+{foodEntries.length - 3} more entries</p>
             )}
           </div>
         </div>
@@ -201,14 +201,14 @@ export function FitnessSummary({ date, userId }: FitnessSummaryProps) {
           <div className="flex items-center justify-between">
             <span className="text-[11px] tracking-wide text-secondary font-medium">Workout</span>
             {workoutPlan.workout_type !== 'rest' && (
-              <span className="text-[10px] text-muted">
+              <span className="text-xs text-muted">
                 {completedCount}/{exercises.length} done
               </span>
             )}
           </div>
           
           {workoutPlan.workout_type === 'rest' ? (
-            <p className="text-xs text-muted">Rest day</p>
+            <p className="text-sm text-muted">Rest day</p>
           ) : exercises.length > 0 ? (
             <div className="space-y-2">
               {exercises.map(exercise => {
@@ -264,7 +264,7 @@ export function FitnessSummary({ date, userId }: FitnessSummaryProps) {
                           {exercise.name}
                         </h3>
                         {exercise.suggested_reps && (
-                          <span className="text-[10px] text-muted flex-shrink-0">
+                          <span className="text-xs text-muted flex-shrink-0">
                             {exercise.suggested_sets && exercise.suggested_sets > 1 
                               ? `${exercise.suggested_sets} × ${exercise.suggested_reps}`
                               : exercise.suggested_reps
@@ -274,7 +274,7 @@ export function FitnessSummary({ date, userId }: FitnessSummaryProps) {
                       </div>
                       {exercise.description && (
                         <p className={cn(
-                          "text-[10px] mt-0.5 leading-relaxed line-clamp-2",
+                          "text-xs mt-0.5 leading-relaxed line-clamp-2",
                           isCompleted ? 'text-muted/50' : 'text-secondary'
                         )}>
                           {exercise.description}
@@ -286,7 +286,7 @@ export function FitnessSummary({ date, userId }: FitnessSummaryProps) {
               })}
             </div>
           ) : (
-            <p className="text-xs text-muted">No exercises planned</p>
+            <p className="text-sm text-muted">No exercises planned</p>
           )}
         </div>
       )}

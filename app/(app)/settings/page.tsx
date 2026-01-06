@@ -312,7 +312,7 @@ export default function SettingsPage() {
           <SectionHeader>Account</SectionHeader>
           <Card>
             <div className="space-y-1">
-              <span className="text-xs tracking-wide text-muted font-medium">Email</span>
+              <span className="text-sm tracking-wide text-muted font-medium">Email</span>
               <p className="text-sm text-secondary">{user?.email}</p>
             </div>
           </Card>
@@ -333,18 +333,18 @@ export default function SettingsPage() {
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="px-4 py-2 text-xs tracking-wide text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-lg transition-all disabled:opacity-50"
+                  className="px-4 py-2 text-sm tracking-wide text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-lg transition-all disabled:opacity-50"
                 >
                   {saving ? 'Saving...' : 'Save timezone'}
                 </button>
                 {message === 'Saved' && (
-                  <span className="flex items-center gap-1.5 text-xs text-secondary">
+                  <span className="flex items-center gap-1.5 text-sm text-secondary">
                     <Check className="w-3.5 h-3.5" /> {message}
                   </span>
                 )}
               </div>
 
-              <p className="text-xs text-muted">
+              <p className="text-sm text-muted">
                 All timestamps are stored in UTC. Changing timezone only affects display.
               </p>
             </div>
@@ -358,7 +358,7 @@ export default function SettingsPage() {
             {!showCreateCategory && (
               <button
                 onClick={() => setShowCreateCategory(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs tracking-wide text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-lg transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm tracking-wide text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-lg transition-all"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add Category
@@ -372,7 +372,7 @@ export default function SettingsPage() {
               {showCreateCategory && (
                 <div className="p-4 bg-white/[0.02] rounded-xl border border-white/[0.06] space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-secondary">New Category</span>
+                    <span className="text-sm font-medium text-secondary">New Category</span>
                     <button
                       onClick={() => {
                         setShowCreateCategory(false)
@@ -394,7 +394,7 @@ export default function SettingsPage() {
                     />
                     
                     <div className="flex items-center gap-3">
-                      <label className="text-xs text-muted whitespace-nowrap">Color:</label>
+                      <label className="text-sm text-muted whitespace-nowrap">Color:</label>
                       <div className="flex flex-wrap gap-2 flex-1">
                         {['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD', '#D4A5A5', '#9B59B6', '#3498DB', '#E74C3C', '#2ECC71'].map(c => (
                           <button
@@ -421,7 +421,7 @@ export default function SettingsPage() {
                     <button
                       onClick={handleCreateCategory}
                       disabled={!newCategoryName.trim()}
-                      className="w-full px-4 py-2 text-xs tracking-wide text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-2 text-sm tracking-wide text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Create Category
                     </button>
@@ -450,7 +450,7 @@ export default function SettingsPage() {
                             autoFocus
                           />
                           <div className="flex items-center gap-2">
-                            <label className="text-xs text-muted whitespace-nowrap">Color:</label>
+                            <label className="text-sm text-muted whitespace-nowrap">Color:</label>
                             <div className="flex flex-wrap gap-1.5 flex-1">
                               {['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD', '#D4A5A5', '#9B59B6', '#3498DB', '#E74C3C', '#2ECC71'].map(c => (
                                 <button
@@ -499,7 +499,7 @@ export default function SettingsPage() {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-secondary truncate">{category.name}</p>
                           {category.user_id && (
-                            <p className="text-xs text-muted/50 mt-0.5">Custom</p>
+                            <p className="text-sm text-muted/50 mt-0.5">Custom</p>
                           )}
                         </div>
                         <button
@@ -529,20 +529,20 @@ export default function SettingsPage() {
           <SectionHeader>Export data</SectionHeader>
           <Card>
             <div className="space-y-4">
-              <p className="text-xs text-muted">
+              <p className="text-sm text-muted">
                 Download all your Lifegrid data. You own your data completely.
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => handleExportData('json')}
-                  className="flex items-center gap-2 px-4 py-2 text-xs tracking-wide text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-lg transition-all"
+                  className="flex items-center gap-2 px-4 py-2 text-sm tracking-wide text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-lg transition-all"
                 >
                   <Download className="w-3.5 h-3.5" />
                   JSON
                 </button>
                 <button
                   onClick={() => handleExportData('csv')}
-                  className="flex items-center gap-2 px-4 py-2 text-xs tracking-wide text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-lg transition-all"
+                  className="flex items-center gap-2 px-4 py-2 text-sm tracking-wide text-secondary hover:text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-lg transition-all"
                 >
                   <Download className="w-3.5 h-3.5" />
                   CSV
@@ -554,7 +554,7 @@ export default function SettingsPage() {
 
         {/* Philosophy */}
         <div className="pt-6 border-t border-white/[0.06]">
-          <p className="text-xs text-muted italic text-center">
+          <p className="text-sm text-muted italic text-center">
             Your data lives with you. Export it anytime, delete your account whenever you want.
           </p>
         </div>
@@ -562,7 +562,7 @@ export default function SettingsPage() {
         {/* Message toast */}
         {message && message !== 'Saved' && (
           <div className="fixed bottom-6 right-6 px-4 py-3 bg-popover border border-white/[0.06] rounded-xl animate-fade shadow-lg">
-            <p className="text-xs text-secondary">{message}</p>
+            <p className="text-sm text-secondary">{message}</p>
           </div>
         )}
       </div>

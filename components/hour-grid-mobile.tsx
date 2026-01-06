@@ -292,19 +292,19 @@ function EditBlockForm({
       <div className="flex gap-2 pt-2">
         <button
           onClick={onDelete}
-          className="flex-1 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg text-sm font-medium"
+          className="flex-1 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg text-base font-medium"
         >
           Delete
         </button>
         <button
           onClick={onCancel}
-          className="flex-1 py-2 bg-white/5 text-secondary border border-white/10 rounded-lg text-sm font-medium"
+          className="flex-1 py-2 bg-white/5 text-secondary border border-white/10 rounded-lg text-base font-medium"
         >
           Cancel
         </button>
         <button
           onClick={handleSave}
-          className="flex-1 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium"
+          className="flex-1 py-2 bg-primary text-primary-foreground rounded-lg text-base font-medium"
         >
           Save
         </button>

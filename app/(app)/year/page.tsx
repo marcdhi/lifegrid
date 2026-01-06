@@ -187,7 +187,7 @@ export default function YearPage() {
               </button>
               <button
                 onClick={() => setCurrentYear(new Date().getFullYear())}
-                className="px-3 py-1.5 text-xs tracking-wide text-muted hover:text-secondary transition-colors rounded-lg"
+                className="px-3 py-1.5 text-sm tracking-wide text-muted hover:text-secondary transition-colors rounded-lg"
               >
                 This year
               </button>
@@ -208,7 +208,7 @@ export default function YearPage() {
             <div key={month} className="flex items-start gap-3">
               {/* Month label */}
               <div className="w-10 flex-shrink-0 pt-1">
-                <span className="text-[10px] font-mono tracking-wider text-muted">
+                <span className="text-xs font-mono tracking-wider text-muted">
                   {monthName}
                 </span>
               </div>
@@ -260,7 +260,7 @@ export default function YearPage() {
                   className="w-2.5 h-2.5 rounded-sm"
                   style={{ backgroundColor: getCategoryColor(category) }}
                 />
-                <span className="text-[10px] text-muted">{category.name}</span>
+                <span className="text-xs text-muted">{category.name}</span>
               </div>
             ))}
           </div>

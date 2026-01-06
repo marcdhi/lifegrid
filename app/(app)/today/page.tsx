@@ -449,7 +449,7 @@ function TodayContent() {
             <button
               onClick={() => handleViewModeChange('grid')}
               className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200",
+                "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200",
                 viewMode === 'grid' ? "bg-white/10 text-white shadow-sm" : "text-muted hover:text-secondary"
               )}
             >
@@ -459,7 +459,7 @@ function TodayContent() {
             <button
               onClick={() => handleViewModeChange('tasks')}
               className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200",
+                "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200",
                 viewMode === 'tasks' ? "bg-white/10 text-white shadow-sm" : "text-muted hover:text-secondary"
               )}
             >
