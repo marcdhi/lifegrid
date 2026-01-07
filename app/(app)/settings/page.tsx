@@ -70,7 +70,8 @@ export default function SettingsPage() {
       if (!error && data) {
         setPrivacySettings(data)
       } else if (error?.code === 'PGRST116') {
-        // No privacy settings found, create default (all private)
+        // PGRST116: No rows returned - user has no privacy settings yet
+        // Create default privacy settings (all private)
         const { data: newSettings, error: insertError } = await supabase
           .from('user_privacy_settings')
           .insert({
@@ -132,7 +133,7 @@ export default function SettingsPage() {
     setSaving(false)
   }
 
-  const handlePrivacyToggle = async (field: keyof Pick<UserPrivacySettings, 'fitness_public' | 'analytics_public' | 'schedule_public' | 'grid_public'>) => {
+  const handlePrivacyToggle = async (field: 'fitness_public' | 'analytics_public' | 'schedule_public' | 'grid_public') => {
     if (!user || !privacySettings) return
 
     setSavingPrivacy(field)
@@ -149,8 +150,8 @@ export default function SettingsPage() {
       setMessage('Privacy settings updated')
       setTimeout(() => setMessage(null), 2000)
     } else {
-      setMessage('Failed to update privacy settings')
-      setTimeout(() => setMessage(null), 2000)
+      setMessage(`Failed to update privacy settings: ${error?.message || 'Unknown error'}`)
+      setTimeout(() => setMessage(null), 3000)
     }
 
     setSavingPrivacy(null)
