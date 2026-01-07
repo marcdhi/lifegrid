@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import type { User, Category } from "@/lib/types"
-import { Download, Check, Plus, Edit2, X, Tag } from "lucide-react"
+import type { User, Category, UserPrivacySettings } from "@/lib/types"
+import { Download, Check, Plus, Edit2, X, Tag, Shield } from "lucide-react"
 import { PageHeader } from "@/components/ui/page-header"
 import { SectionHeader } from "@/components/ui/section-header"
 import { TextField } from "@/components/ui/text-field"
 import { Card } from "@/components/ui/card"
+import { Switch } from "@/components/ui/switch"
 import { cn, filterCategoriesForUser } from "@/lib/utils"
 
 export default function SettingsPage() {
@@ -16,6 +17,10 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  
+  // Privacy settings state
+  const [privacySettings, setPrivacySettings] = useState<UserPrivacySettings | null>(null)
+  const [savingPrivacy, setSavingPrivacy] = useState<string | null>(null)
   
   // Categories state
   const [categories, setCategories] = useState<Category[]>([])
@@ -50,6 +55,43 @@ export default function SettingsPage() {
 
     fetchUser()
   }, [supabase])
+
+  // Fetch or create privacy settings
+  useEffect(() => {
+    const fetchPrivacySettings = async () => {
+      if (!user) return
+
+      const { data, error } = await supabase
+        .from('user_privacy_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+
+      if (!error && data) {
+        setPrivacySettings(data)
+      } else if (error?.code === 'PGRST116') {
+        // PGRST116: No rows returned - user has no privacy settings yet
+        // Create default privacy settings (all private)
+        const { data: newSettings, error: insertError } = await supabase
+          .from('user_privacy_settings')
+          .insert({
+            user_id: user.id,
+            fitness_public: false,
+            analytics_public: false,
+            schedule_public: false,
+            grid_public: false,
+          })
+          .select()
+          .single()
+
+        if (!insertError && newSettings) {
+          setPrivacySettings(newSettings)
+        }
+      }
+    }
+
+    fetchPrivacySettings()
+  }, [supabase, user])
 
   // Fetch categories - filter out system categories if user has custom ones with same name
   useEffect(() => {
@@ -89,6 +131,30 @@ export default function SettingsPage() {
     }
 
     setSaving(false)
+  }
+
+  const handlePrivacyToggle = async (field: 'fitness_public' | 'analytics_public' | 'schedule_public' | 'grid_public') => {
+    if (!user || !privacySettings) return
+
+    setSavingPrivacy(field)
+
+    const newValue = !privacySettings[field]
+    
+    const { error } = await supabase
+      .from('user_privacy_settings')
+      .update({ [field]: newValue })
+      .eq('user_id', user.id)
+
+    if (!error) {
+      setPrivacySettings({ ...privacySettings, [field]: newValue })
+      setMessage('Privacy settings updated')
+      setTimeout(() => setMessage(null), 2000)
+    } else {
+      setMessage(`Failed to update privacy settings: ${error?.message || 'Unknown error'}`)
+      setTimeout(() => setMessage(null), 3000)
+    }
+
+    setSavingPrivacy(null)
   }
 
   const handleUpdateCategory = async (categoryId: string) => {
@@ -314,6 +380,113 @@ export default function SettingsPage() {
             <div className="space-y-1">
               <span className="text-sm tracking-wide text-muted font-medium">Email</span>
               <p className="text-sm text-secondary">{user?.email}</p>
+            </div>
+          </Card>
+        </section>
+
+        {/* Privacy Settings */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4 text-muted" />
+            <SectionHeader>Privacy Settings</SectionHeader>
+          </div>
+          <Card>
+            <div className="space-y-6">
+              <p className="text-sm text-muted">
+                Control what data you share with accepted friends. All settings default to private.
+              </p>
+
+              {/* Fitness Data Toggle */}
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 space-y-1">
+                  <label htmlFor="fitness-toggle" className="text-sm font-medium text-secondary cursor-pointer">
+                    Fitness Data
+                  </label>
+                  <p className="text-sm text-muted">
+                    Share your workout plans, completions, and food logs with friends
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {savingPrivacy === 'fitness_public' && (
+                    <span className="text-xs text-muted">Saving...</span>
+                  )}
+                  <Switch
+                    id="fitness-toggle"
+                    checked={privacySettings?.fitness_public || false}
+                    onCheckedChange={() => handlePrivacyToggle('fitness_public')}
+                    disabled={savingPrivacy === 'fitness_public'}
+                  />
+                </div>
+              </div>
+
+              {/* Analytics Data Toggle */}
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 space-y-1">
+                  <label htmlFor="analytics-toggle" className="text-sm font-medium text-secondary cursor-pointer">
+                    Analytics Data
+                  </label>
+                  <p className="text-sm text-muted">
+                    Share your activity analytics and statistics with friends
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {savingPrivacy === 'analytics_public' && (
+                    <span className="text-xs text-muted">Saving...</span>
+                  )}
+                  <Switch
+                    id="analytics-toggle"
+                    checked={privacySettings?.analytics_public || false}
+                    onCheckedChange={() => handlePrivacyToggle('analytics_public')}
+                    disabled={savingPrivacy === 'analytics_public'}
+                  />
+                </div>
+              </div>
+
+              {/* Schedule Data Toggle */}
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 space-y-1">
+                  <label htmlFor="schedule-toggle" className="text-sm font-medium text-secondary cursor-pointer">
+                    Schedule Data
+                  </label>
+                  <p className="text-sm text-muted">
+                    Share your daily schedule and planned activities with friends
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {savingPrivacy === 'schedule_public' && (
+                    <span className="text-xs text-muted">Saving...</span>
+                  )}
+                  <Switch
+                    id="schedule-toggle"
+                    checked={privacySettings?.schedule_public || false}
+                    onCheckedChange={() => handlePrivacyToggle('schedule_public')}
+                    disabled={savingPrivacy === 'schedule_public'}
+                  />
+                </div>
+              </div>
+
+              {/* Grid Data Toggle */}
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 space-y-1">
+                  <label htmlFor="grid-toggle" className="text-sm font-medium text-secondary cursor-pointer">
+                    Grid View
+                  </label>
+                  <p className="text-sm text-muted">
+                    Share your hour-by-hour activity grid and time logs with friends
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {savingPrivacy === 'grid_public' && (
+                    <span className="text-xs text-muted">Saving...</span>
+                  )}
+                  <Switch
+                    id="grid-toggle"
+                    checked={privacySettings?.grid_public || false}
+                    onCheckedChange={() => handlePrivacyToggle('grid_public')}
+                    disabled={savingPrivacy === 'grid_public'}
+                  />
+                </div>
+              </div>
             </div>
           </Card>
         </section>
