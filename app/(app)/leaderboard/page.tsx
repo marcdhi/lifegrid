@@ -37,6 +37,14 @@ function calculateScore(data: LeaderboardData, type: LeaderboardType): number {
 // Default duration for hour logs that don't have a duration set
 const DEFAULT_HOUR_DURATION_MINUTES = 60
 
+// Time constants for date calculations
+const MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000
+const DAYS_IN_WEEK = 7
+const DAYS_IN_MONTH = 30 // Using 30 days as an approximation for "last month"
+
+// Earliest date for all-time queries
+const ALL_TIME_START_DATE = '2000-01-01'
+
 export default function LeaderboardPage() {
   const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -56,12 +64,15 @@ export default function LeaderboardPage() {
       }
     }
     fetchUser()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
     if (userId) {
       fetchLeaderboardData()
     }
+    // fetchLeaderboardData is defined in component scope and depends on state
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, leaderboardType, period])
 
   const getDateRange = (): { startDate: string, endDate: string } => {
@@ -71,15 +82,15 @@ export default function LeaderboardPage() {
     let startDate: string
     switch (period) {
       case 'week':
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+        const weekAgo = new Date(now.getTime() - DAYS_IN_WEEK * MILLISECONDS_IN_DAY)
         startDate = weekAgo.toISOString().split('T')[0]
         break
       case 'month':
-        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+        const monthAgo = new Date(now.getTime() - DAYS_IN_MONTH * MILLISECONDS_IN_DAY)
         startDate = monthAgo.toISOString().split('T')[0]
         break
       case 'all_time':
-        startDate = '2000-01-01'
+        startDate = ALL_TIME_START_DATE
         break
     }
     
