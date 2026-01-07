@@ -16,7 +16,8 @@ import {
   Heart,
   Menu,
   X,
-  Users
+  Users,
+  Trophy
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
@@ -35,6 +36,7 @@ const navItems: NavItem[] = [
   { label: "Spending", href: "/spending", icon: IndianRupee },
   { label: "Reflection", href: "/reflection", icon: BookOpen },
   { label: "Friends", href: "/friends", icon: Users },
+  { label: "Leaderboard", href: "/leaderboard", icon: Trophy },
   { label: "Settings", href: "/settings", icon: Settings },
 ]
 
