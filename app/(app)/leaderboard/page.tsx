@@ -26,6 +26,14 @@ interface LeaderboardData {
   total_minutes_logged: number
 }
 
+// Helper function to calculate score
+function calculateScore(data: LeaderboardData, type: LeaderboardType): number {
+  if (type === 'fitness') {
+    return data.workout_completions * 10 + data.food_entries
+  }
+  return data.total_minutes_logged
+}
+
 export default function LeaderboardPage() {
   const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -141,92 +149,78 @@ export default function LeaderboardPage() {
       // Get date range
       const { startDate, endDate } = getDateRange()
 
-      // Fetch metrics based on leaderboard type
-      const metricsData: LeaderboardData[] = []
+      // Fetch metrics based on leaderboard type using parallel queries
+      const metricsData: LeaderboardData[] = await Promise.all(
+        usersWithPublicData.map(async (uId) => {
+          const email = userMap.get(uId) || 'Unknown'
 
-      for (const uId of usersWithPublicData) {
-        const email = userMap.get(uId) || 'Unknown'
-        let score = 0
+          if (leaderboardType === 'fitness') {
+            // Count workout completions and food entries in parallel
+            const [workoutsResult, foodsResult] = await Promise.all([
+              supabase
+                .from('workout_completions')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', uId)
+                .eq('completed', true)
+                .gte('date', startDate)
+                .lte('date', endDate),
+              supabase
+                .from('food_entries')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', uId)
+                .gte('date', startDate)
+                .lte('date', endDate)
+            ])
 
-        if (leaderboardType === 'fitness') {
-          // Count workout completions
-          const { data: workouts, error: workoutsError } = await supabase
-            .from('workout_completions')
-            .select('id', { count: 'exact' })
-            .eq('user_id', uId)
-            .eq('completed', true)
-            .gte('date', startDate)
-            .lte('date', endDate)
+            if (workoutsResult.error) throw workoutsResult.error
+            if (foodsResult.error) throw foodsResult.error
 
-          if (workoutsError) throw workoutsError
+            const workoutCount = workoutsResult.count || 0
+            const foodCount = foodsResult.count || 0
 
-          // Count food entries
-          const { data: foods, error: foodsError } = await supabase
-            .from('food_entries')
-            .select('id', { count: 'exact' })
-            .eq('user_id', uId)
-            .gte('date', startDate)
-            .lte('date', endDate)
+            return {
+              user_id: uId,
+              email,
+              workout_completions: workoutCount,
+              food_entries: foodCount,
+              hour_logs: 0,
+              total_minutes_logged: 0
+            }
+          } else {
+            // Analytics: Fetch hour logs
+            const { data: hourLogs, error: hourLogsError } = await supabase
+              .from('hour_logs')
+              .select('duration_minutes')
+              .eq('user_id', uId)
+              .gte('created_at', startDate)
+              .lte('created_at', endDate)
 
-          if (foodsError) throw foodsError
+            if (hourLogsError) throw hourLogsError
 
-          const workoutCount = workouts?.length || 0
-          const foodCount = foods?.length || 0
+            const logCount = hourLogs?.length || 0
+            const totalMinutes = hourLogs?.reduce((sum, log) => sum + (log.duration_minutes || 60), 0) || 0
 
-          // Score = workout completions * 10 + food entries * 1
-          score = workoutCount * 10 + foodCount
-
-          metricsData.push({
-            user_id: uId,
-            email,
-            workout_completions: workoutCount,
-            food_entries: foodCount,
-            hour_logs: 0,
-            total_minutes_logged: 0
-          })
-        } else {
-          // Analytics: Count hour logs and total minutes
-          const { data: hourLogs, error: hourLogsError } = await supabase
-            .from('hour_logs')
-            .select('duration_minutes')
-            .eq('user_id', uId)
-            .gte('created_at', startDate)
-            .lte('created_at', endDate)
-
-          if (hourLogsError) throw hourLogsError
-
-          const logCount = hourLogs?.length || 0
-          const totalMinutes = hourLogs?.reduce((sum, log) => sum + (log.duration_minutes || 60), 0) || 0
-
-          // Score = total minutes logged
-          score = totalMinutes
-
-          metricsData.push({
-            user_id: uId,
-            email,
-            workout_completions: 0,
-            food_entries: 0,
-            hour_logs: logCount,
-            total_minutes_logged: totalMinutes
-          })
-        }
-      }
+            return {
+              user_id: uId,
+              email,
+              workout_completions: 0,
+              food_entries: 0,
+              hour_logs: logCount,
+              total_minutes_logged: totalMinutes
+            }
+          }
+        })
+      )
 
       // Sort by score and create leaderboard entries
       metricsData.sort((a, b) => {
-        const scoreA = leaderboardType === 'fitness' 
-          ? (a.workout_completions * 10 + a.food_entries)
-          : a.total_minutes_logged
-        const scoreB = leaderboardType === 'fitness' 
-          ? (b.workout_completions * 10 + b.food_entries)
-          : b.total_minutes_logged
+        const scoreA = calculateScore(a, leaderboardType)
+        const scoreB = calculateScore(b, leaderboardType)
         return scoreB - scoreA
       })
 
       const leaderboard: LeaderboardEntry[] = metricsData.map((data, index) => {
-        const score = leaderboardType === 'fitness' 
-          ? (data.workout_completions * 10 + data.food_entries)
-          : data.total_minutes_logged
+        const score = calculateScore(data, leaderboardType)
 
         return {
           user_id: data.user_id,
