@@ -228,3 +228,25 @@ export interface UserPrivacySettings {
   updated_at: string
 }
 
+// ==================
+// LEADERBOARD TYPES
+// ==================
+
+export interface LeaderboardEntry {
+  user_id: string
+  email: string
+  score: number
+  rank: number
+  is_current_user: boolean
+}
+
+export interface LeaderboardMetrics {
+  workout_completions: number
+  food_entries: number
+  hour_logs: number
+  total_minutes_logged: number
+}
+
+export type LeaderboardType = 'fitness' | 'analytics'
+export type LeaderboardPeriod = 'week' | 'month' | 'all_time'
+
