@@ -34,6 +34,9 @@ function calculateScore(data: LeaderboardData, type: LeaderboardType): number {
   return data.total_minutes_logged
 }
 
+// Default duration for hour logs that don't have a duration set
+const DEFAULT_HOUR_DURATION_MINUTES = 60
+
 export default function LeaderboardPage() {
   const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -53,13 +56,13 @@ export default function LeaderboardPage() {
       }
     }
     fetchUser()
-  }, [supabase])
+  }, [])
 
   useEffect(() => {
     if (userId) {
       fetchLeaderboardData()
     }
-  }, [userId, leaderboardType, period, supabase])
+  }, [userId, leaderboardType, period])
 
   const getDateRange = (): { startDate: string, endDate: string } => {
     const now = new Date()
@@ -187,18 +190,40 @@ export default function LeaderboardPage() {
               total_minutes_logged: 0
             }
           } else {
-            // Analytics: Fetch hour logs
+            // Analytics: Fetch hour logs by joining with days table
+            // First get the days in the date range
+            const { data: days, error: daysError } = await supabase
+              .from('days')
+              .select('id')
+              .eq('user_id', uId)
+              .gte('date', startDate)
+              .lte('date', endDate)
+
+            if (daysError) throw daysError
+
+            const dayIds = days?.map(d => d.id) || []
+            
+            if (dayIds.length === 0) {
+              return {
+                user_id: uId,
+                email,
+                workout_completions: 0,
+                food_entries: 0,
+                hour_logs: 0,
+                total_minutes_logged: 0
+              }
+            }
+
+            // Fetch hour logs for those days
             const { data: hourLogs, error: hourLogsError } = await supabase
               .from('hour_logs')
               .select('duration_minutes')
-              .eq('user_id', uId)
-              .gte('created_at', startDate)
-              .lte('created_at', endDate)
+              .in('day_id', dayIds)
 
             if (hourLogsError) throw hourLogsError
 
             const logCount = hourLogs?.length || 0
-            const totalMinutes = hourLogs?.reduce((sum, log) => sum + (log.duration_minutes || 60), 0) || 0
+            const totalMinutes = hourLogs?.reduce((sum, log) => sum + (log.duration_minutes || DEFAULT_HOUR_DURATION_MINUTES), 0) || 0
 
             return {
               user_id: uId,
